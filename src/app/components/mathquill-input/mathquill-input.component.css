@@ -1,0 +1,38 @@
+.mathquill-container {
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mathquill-input {
+  min-height: 48px;
+  padding: 1rem;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  background: #fff;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  cursor: text;
+  overflow-x: auto;
+  box-sizing: border-box;
+  width: 100%;
+  flex: 1;
+}
+
+.mathquill-input:focus-within {
+  background: #f9fafb;
+  border-bottom-color: #667eea;
+  outline: none;
+}
+
+.mathquill-input .mq-editable-field {
+  border: none;
+  padding: 0;
+}
+
+.mathquill-input .mq-cursor {
+  border-left: 2px solid #667eea;
+}
+

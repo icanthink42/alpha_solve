@@ -1,0 +1,260 @@
+.cell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  height: 100%;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.empty-hint {
+  font-size: 0.875rem;
+  color: #999;
+  margin-top: 0.5rem;
+}
+
+.cell-item {
+  padding: 0;
+  background: #fff;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: stretch;
+  cursor: move;
+}
+
+.cell-item.nested {
+  margin-left: 0;
+  padding-left: 2rem;
+  border-left: none;
+}
+
+.cell-item:active {
+  opacity: 0.5;
+}
+
+.cell-item.drop-target {
+  border-top: 3px solid #667eea;
+}
+
+.cell-item.drop-target.nested {
+  border-top: 3px solid #667eea;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  padding: 0;
+  color: #d1d5db;
+  cursor: grab;
+  background: transparent;
+  transition: all 0.2s ease;
+  border-right: 1px solid transparent;
+}
+
+.drag-handle:hover {
+  color: #9ca3af;
+  background: #f9fafb;
+  border-right-color: #e5e7eb;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.cell-content-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+
+.cell-content-wrapper.equation-cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cell-content-wrapper.equation-cell app-mathquill-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.solutions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-left: 1px solid #e5e7eb;
+  max-width: 300px;
+  min-width: 200px;
+}
+
+.solution-item {
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #374151;
+  font-family: 'Courier New', monospace;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.note-input {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+  cursor: text;
+}
+
+.note-input:focus {
+  background: #f9fafb;
+  border-bottom-color: #667eea;
+}
+
+.note-input::placeholder {
+  color: #9ca3af;
+}
+
+.folder-container {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.folder-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.folder-toggle svg {
+  transform: rotate(-90deg);
+  transition: transform 0.2s ease;
+}
+
+.folder-toggle.expanded svg {
+  transform: rotate(0deg);
+}
+
+.folder-toggle:hover {
+  color: #374151;
+  background: #f9fafb;
+}
+
+.folder-input {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  border-radius: 0;
+  font-size: 0.9rem;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+  font-weight: 500;
+  color: #374151;
+  cursor: text;
+}
+
+.folder-input:focus {
+  background: #f9fafb;
+}
+
+.folder-input::placeholder {
+  color: #9ca3af;
+}
+
+.nested-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0;
+  min-height: 20px;
+}
+
+.drop-zone-end {
+  min-height: 20px;
+  transition: all 0.2s ease;
+  border-top: 3px solid transparent;
+}
+
+.drop-zone-end.drop-target-end {
+  border-top-color: #667eea;
+}
+
+.drop-zone-end.nested {
+  margin-left: 2rem;
+}
+
+.add-cell-button {
+  min-height: 48px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.add-cell-button:hover {
+  background: #f9fafb;
+  color: #667eea;
+}
+
+.add-cell-button:active {
+  background: #f3f4f6;
+}
+
+.add-cell-button.nested {
+  margin-left: 2rem;
+}
+
