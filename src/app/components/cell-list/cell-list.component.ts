@@ -132,6 +132,9 @@ export class CellListComponent {
 
     if (!this.draggedCell || !this.draggedFromParent) return;
 
+    // Check if moving within the same parent
+    const sameParent = this.draggedFromParent === targetParentArray;
+
     // Remove from original position
     const draggedIndex = this.draggedFromParent.indexOf(this.draggedCell);
     if (draggedIndex > -1) {
@@ -141,6 +144,20 @@ export class CellListComponent {
     // Insert at new position
     const targetIndex = targetParentArray.indexOf(targetCell);
     targetParentArray.splice(targetIndex, 0, this.draggedCell);
+
+    // Emit update from the earliest affected cell (for equation cells only)
+    if (sameParent && this.draggedCell.type === 'equation') {
+      // Find the earliest position that was affected
+      const earliestIndex = Math.min(draggedIndex, targetIndex);
+      if (earliestIndex >= 0 && earliestIndex < targetParentArray.length) {
+        this.cellUpdated.emit(targetParentArray[earliestIndex].id);
+      }
+    } else if (!sameParent && this.draggedCell.type === 'equation') {
+      // Moved to different parent, update from insertion point in target
+      if (targetIndex >= 0 && targetIndex < targetParentArray.length) {
+        this.cellUpdated.emit(targetParentArray[targetIndex].id);
+      }
+    }
 
     this.draggedCell = null;
     this.draggedFromParent = null;
@@ -160,6 +177,9 @@ export class CellListComponent {
 
     if (!this.draggedCell || !this.draggedFromParent) return;
 
+    // Check if moving within the same parent
+    const sameParent = this.draggedFromParent === targetParentArray;
+
     // Remove from original position
     const draggedIndex = this.draggedFromParent.indexOf(this.draggedCell);
     if (draggedIndex > -1) {
@@ -168,6 +188,17 @@ export class CellListComponent {
 
     // Add to end of list
     targetParentArray.push(this.draggedCell);
+
+    // Emit update from the earliest affected cell (for equation cells only)
+    if (sameParent && this.draggedCell.type === 'equation') {
+      // Update from the old position since we removed from there
+      if (draggedIndex >= 0 && draggedIndex < targetParentArray.length) {
+        this.cellUpdated.emit(targetParentArray[draggedIndex].id);
+      }
+    } else if (!sameParent && this.draggedCell.type === 'equation' && targetParentArray.length > 0) {
+      // Moved to different parent, update the dragged cell (now at the end)
+      this.cellUpdated.emit(this.draggedCell.id);
+    }
 
     this.draggedCell = null;
     this.draggedFromParent = null;
