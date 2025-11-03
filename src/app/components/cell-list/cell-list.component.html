@@ -10,14 +10,14 @@
     <div
       class="cell-item"
       [class.drop-target]="dropTargetId === cell.id"
-      draggable="true"
-      (dragstart)="onDragStart($event, cell, cells)"
       (dragover)="onDragOver($event, cell)"
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event, cell, cells)"
-      (dragend)="onDragEnd()"
     >
-      <div class="drag-handle">
+      <div class="drag-handle"
+           draggable="true"
+           (dragstart)="onDragStart($event, cell, cells)"
+           (dragend)="onDragEnd()">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="6" cy="4" r="1.5" fill="currentColor"/>
           <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
@@ -40,7 +40,7 @@
                  (mouseenter)="onSolutionMouseEnter(cell.id)"
                  (mouseleave)="onSolutionMouseLeave()">
               @for (solution of asEquationCell(cell).solutions; track $index) {
-                <div class="solution-item">
+                <div class="solution-item" (click)="onSolutionClick(solution)">
                   <app-latex-renderer [latex]="solution"></app-latex-renderer>
                 </div>
               }
@@ -93,14 +93,14 @@
           <div
             class="cell-item nested"
             [class.drop-target]="dropTargetId === nestedCell.id"
-            draggable="true"
-            (dragstart)="onDragStart($event, nestedCell, asFolderCell(cell).cells)"
             (dragover)="onDragOver($event, nestedCell)"
             (dragleave)="onDragLeave($event)"
             (drop)="onDrop($event, nestedCell, asFolderCell(cell).cells)"
-            (dragend)="onDragEnd()"
           >
-            <div class="drag-handle">
+            <div class="drag-handle"
+                 draggable="true"
+                 (dragstart)="onDragStart($event, nestedCell, asFolderCell(cell).cells)"
+                 (dragend)="onDragEnd()">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="6" cy="4" r="1.5" fill="currentColor"/>
                 <circle cx="10" cy="4" r="1.5" fill="currentColor"/>
@@ -123,7 +123,7 @@
                        (mouseenter)="onSolutionMouseEnter(nestedCell.id)"
                        (mouseleave)="onSolutionMouseLeave()">
                     @for (solution of asEquationCell(nestedCell).solutions; track $index) {
-                      <div class="solution-item">
+                      <div class="solution-item" (click)="onSolutionClick(solution)">
                         <app-latex-renderer [latex]="solution"></app-latex-renderer>
                       </div>
                     }

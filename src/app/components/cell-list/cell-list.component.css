@@ -125,6 +125,12 @@
   display: flex;
   align-items: center;
   min-height: 48px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.solution-item:hover {
+  background-color: #f3f4f6;
 }
 
 .solution-item:last-child {

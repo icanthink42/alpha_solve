@@ -300,4 +300,12 @@ export class CellListComponent {
       .map(v => `${v.name} (${v.type}): [${v.values.join(', ')}]`)
       .join('\n');
   }
+
+  async onSolutionClick(solution: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(solution);
+    } catch (error) {
+      console.error('Failed to copy solution to clipboard:', error);
+    }
+  }
 }
