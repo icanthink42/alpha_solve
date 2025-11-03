@@ -164,6 +164,24 @@
   transform: scale(0.95);
 }
 
+.plugin-status {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.plugin-status:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .main-content {
   flex: 1;
   overflow: auto;

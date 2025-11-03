@@ -47,6 +47,9 @@
           </button>
         </div>
       </div>
+      <div class="plugin-status" (click)="openPluginManager()" title="Manage plugins">
+        {{ plugins().length }} plugin{{ plugins().length !== 1 ? 's' : '' }} loaded
+      </div>
     </div>
     <app-cell-list
       [cells]="project.cells"
@@ -57,6 +60,16 @@
 
   <main class="main-content">
   </main>
-  </div>
+</div>
+
+<!-- Plugin Manager Modal -->
+<app-plugin-manager
+  [plugins]="plugins()"
+  [pluginUrls]="pluginUrls()"
+  [isOpen]="isPluginManagerOpen()"
+  (close)="closePluginManager()"
+  (addPluginUrl)="onAddPluginUrl($event)"
+  (removePluginUrl)="onRemovePluginUrl($event)"
+/>
 
 <router-outlet />
