@@ -240,6 +240,10 @@ export class Project {
     }
 
     if (metaResults.length === 0) {
+      // No meta functions available, propagate context and clear solutions
+      cell.context = inputContext;
+      cell.solutions = [];
+      cell.updatedAt = new Date();
       return inputContext;
     }
 
@@ -247,8 +251,10 @@ export class Project {
     const usableResults = metaResults.filter(mr => mr.result.useResult);
 
     if (usableResults.length === 0) {
-      // No functions want to be used, propagate context without modification
+      // No functions want to be used, propagate context and clear solutions
       cell.context = inputContext;
+      cell.solutions = [];
+      cell.updatedAt = new Date();
       return inputContext;
     }
 
