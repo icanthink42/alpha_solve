@@ -35,6 +35,11 @@ export class PluginManagerComponent {
       name: 'Alpha Solve Analytical',
       description: 'Analytical solution plugin for solving equations and mathematical problems',
       url: 'https://github.com/icanthink42/alpha_solve_analytical.git'
+    },
+    {
+      name: 'Alpha Solve Numerical',
+      description: 'Numerical methods plugin for for solving equations and evaluating expressions',
+      url: 'https://github.com/icanthink42/alpha_solve_numerical.git'
     }
   ];
 
