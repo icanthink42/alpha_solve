@@ -26,6 +26,30 @@
           </div>
         </div>
 
+        @if (getAvailableRecommendedPlugins().length > 0) {
+          <div class="recommended-plugins-section">
+            <h3>Recommended Plugins</h3>
+            <p class="section-description">Popular plugins you can add with one click.</p>
+            <div class="recommended-plugins-list">
+              @for (plugin of getAvailableRecommendedPlugins(); track plugin.url) {
+                <div class="recommended-plugin-card">
+                  <div class="recommended-plugin-info">
+                    <h4 class="recommended-plugin-name">{{ plugin.name }}</h4>
+                    <p class="recommended-plugin-description">{{ plugin.description }}</p>
+                    <p class="recommended-plugin-url">{{ plugin.url }}</p>
+                  </div>
+                  <button class="add-recommended-btn" (click)="addRecommendedPlugin(plugin)" title="Add this plugin">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Add
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <div class="plugins-list-section">
           <h3>Installed Plugins</h3>
           @if (pluginUrls().length === 0) {

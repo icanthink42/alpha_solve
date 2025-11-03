@@ -2,6 +2,12 @@ import { Component, signal, output, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Plugin } from '../../models';
 
+interface RecommendedPlugin {
+  name: string;
+  description: string;
+  url: string;
+}
+
 @Component({
   selector: 'app-plugin-manager',
   imports: [FormsModule],
@@ -22,6 +28,15 @@ export class PluginManagerComponent {
 
   // Local state
   protected newPluginUrl = '';
+
+  // Recommended plugins list
+  protected readonly recommendedPlugins: RecommendedPlugin[] = [
+    {
+      name: 'Alpha Solve Analytical',
+      description: 'Analytical solution plugin for solving equations and mathematical problems',
+      url: 'https://github.com/icanthink42/alpha_solve_analytical.git'
+    }
+  ];
 
   /**
    * Close the plugin manager
@@ -71,6 +86,22 @@ export class PluginManagerComponent {
   protected getPluginByUrl(url: string): Plugin | undefined {
     const index = this.pluginUrls().indexOf(url);
     return index !== -1 ? this.plugins()[index] : undefined;
+  }
+
+  /**
+   * Get recommended plugins that are not already installed
+   */
+  protected getAvailableRecommendedPlugins(): RecommendedPlugin[] {
+    return this.recommendedPlugins.filter(
+      recommended => !this.pluginUrls().includes(recommended.url)
+    );
+  }
+
+  /**
+   * Add a recommended plugin
+   */
+  protected addRecommendedPlugin(plugin: RecommendedPlugin): void {
+    this.addPluginUrl.emit(plugin.url);
   }
 }
 
