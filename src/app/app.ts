@@ -15,7 +15,7 @@ export class App {
   protected readonly title = signal('alpha_solve');
   protected project: Project;
   protected selectedCell = signal<Cell | null>(null);
-  protected sidebarWidth = signal(320);
+  protected sidebarWidth = signal(this.getInitialSidebarWidth());
   protected isEditingProjectName = signal(false);
   private isResizing = false;
   protected plugins: Plugin[] = [];
@@ -31,6 +31,25 @@ export class App {
       // After plugins are loaded, update the first cell
       this.updateFirstCell();
     });
+
+    // Handle window resize to update sidebar width responsively
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => {
+        if (!this.isResizing) {
+          this.sidebarWidth.set(this.getInitialSidebarWidth());
+        }
+      });
+    }
+  }
+
+  private getInitialSidebarWidth(): number {
+    if (typeof window === 'undefined') {
+      return 320;
+    }
+    // On mobile (width <= 768px), use 100% width
+    // On desktop, use 50% width
+    const isMobile = window.innerWidth <= 768;
+    return isMobile ? window.innerWidth : window.innerWidth * 0.5;
   }
 
   private async initializePlugins(): Promise<void> {

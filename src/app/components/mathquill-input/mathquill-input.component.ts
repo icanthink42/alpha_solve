@@ -68,6 +68,8 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
     const MQ = MathQuill.getInterface(2);
     this.mathField = MQ.MathField(this.mathquillField.nativeElement, {
       spaceBehavesLikeTab: true,
+      autoCommands: 'pi theta phi sigma alpha beta gamma delta epsilon zeta eta iota kappa lambda mu nu xi omicron rho tau upsilon chi psi omega sqrt sum prod int',
+      autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh sech csch coth arcsin arccos arctan arcsec arccsc arccot log ln lg exp det dim ker gcd lcm min max sup inf lim limsup liminf arg deg hom Pr',
       handlers: {
         edit: () => {
           if (this.isInitializing) {
