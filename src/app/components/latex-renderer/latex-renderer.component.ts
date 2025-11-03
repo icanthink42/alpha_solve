@@ -8,7 +8,8 @@ declare const MathQuill: any;
   template: '<span class="latex-rendered"></span>',
   styles: [`
     :host {
-      display: inline-block;
+      display: flex;
+      align-items: center;
     }
     .latex-rendered {
       display: inline-block;

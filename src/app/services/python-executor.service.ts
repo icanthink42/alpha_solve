@@ -51,7 +51,7 @@ export class PythonExecutorService {
     if (!this.pyodide) {
       console.log('Loading Pyodide...');
       this.pyodide = await loadPyodide({
-        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.29.0/full/'
       });
       console.log('Pyodide loaded successfully');
 
