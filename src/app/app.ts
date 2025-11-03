@@ -302,6 +302,9 @@ export class App {
 
     // Reload plugins
     await this.initializePlugins();
+
+    // Update all cells with new plugin functions
+    await this.updateFirstCell();
   }
 
   /**
@@ -314,5 +317,8 @@ export class App {
 
     // Reload plugins
     await this.initializePlugins();
+
+    // Update all cells after plugin removal
+    await this.updateFirstCell();
   }
 }
