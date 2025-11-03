@@ -9,12 +9,12 @@ export type VariableType = 'numerical' | 'analytical';
 export class Variable {
   name: string;
   type: VariableType;
-  value: string;
+  values: string[];
 
-  constructor(name: string, type: VariableType, value: string) {
+  constructor(name: string, type: VariableType, values: string[]) {
     this.name = name;
     this.type = type;
-    this.value = value;
+    this.values = values;
   }
 
   /**
@@ -24,7 +24,7 @@ export class Variable {
     return {
       name: this.name,
       type: this.type,
-      value: this.value
+      values: this.values
     };
   }
 
@@ -32,21 +32,21 @@ export class Variable {
    * Create a variable from JSON data
    */
   static fromJSON(data: any): Variable {
-    return new Variable(data.name, data.type, data.value);
+    return new Variable(data.name, data.type, data.values);
   }
 
   /**
    * Create a numerical variable
    */
-  static createNumerical(name: string, value: string): Variable {
-    return new Variable(name, 'numerical', value);
+  static createNumerical(name: string, values: string[]): Variable {
+    return new Variable(name, 'numerical', values);
   }
 
   /**
    * Create an analytical variable
    */
-  static createAnalytical(name: string, value: string): Variable {
-    return new Variable(name, 'analytical', value);
+  static createAnalytical(name: string, values: string[]): Variable {
+    return new Variable(name, 'analytical', values);
   }
 }
 

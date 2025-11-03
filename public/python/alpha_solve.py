@@ -17,7 +17,7 @@ class Variable:
     """
     name: str
     type: str  # 'numerical' or 'analytical'
-    value: str
+    values: List[str]
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'Variable':
@@ -25,7 +25,7 @@ class Variable:
         return Variable(
             name=data['name'],
             type=data['type'],
-            value=data['value']
+            values=data['values']
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -33,14 +33,14 @@ class Variable:
         return asdict(self)
 
     @staticmethod
-    def create_numerical(name: str, value: str) -> 'Variable':
+    def create_numerical(name: str, values: List[str]) -> 'Variable':
         """Create a numerical variable"""
-        return Variable(name=name, type='numerical', value=value)
+        return Variable(name=name, type='numerical', values=values)
 
     @staticmethod
-    def create_analytical(name: str, value: str) -> 'Variable':
+    def create_analytical(name: str, values: List[str]) -> 'Variable':
         """Create an analytical variable"""
-        return Variable(name=name, type='analytical', value=value)
+        return Variable(name=name, type='analytical', values=values)
 
 
 @dataclass
