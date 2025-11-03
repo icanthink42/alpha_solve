@@ -243,16 +243,18 @@ export class Project {
       return inputContext;
     }
 
-    // Sort by index and choose the top one (lowest index)
-    metaResults.sort((a, b) => a.result.index - b.result.index);
-    const selectedFunction = metaResults[0];
+    // Filter out functions that returned use_result=False
+    const usableResults = metaResults.filter(mr => mr.result.useResult);
 
-    // Check if the function should be used
-    if (!selectedFunction.result.useResult) {
-      // If useResult is false, just propagate context without modification
+    if (usableResults.length === 0) {
+      // No functions want to be used, propagate context without modification
       cell.context = inputContext;
       return inputContext;
     }
+
+    // Sort by index and choose the top one (lowest index)
+    usableResults.sort((a, b) => a.result.index - b.result.index);
+    const selectedFunction = usableResults[0];
 
     // Run the selected function to get new context
     try {
