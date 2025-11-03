@@ -36,10 +36,18 @@
             (keydownEvent)="onCellKeyDown($event, cell, cells)"
           />
           @if (asEquationCell(cell).solutions && asEquationCell(cell).solutions!.length > 0) {
-            <div class="solutions-panel">
+            <div class="solutions-panel"
+                 (mouseenter)="onSolutionMouseEnter(cell.id)"
+                 (mouseleave)="onSolutionMouseLeave()">
               @for (solution of asEquationCell(cell).solutions; track $index) {
                 <div class="solution-item">
                   <app-latex-renderer [latex]="solution"></app-latex-renderer>
+                </div>
+              }
+              @if (isDebugMode && hoveredCellId === cell.id) {
+                <div class="context-tooltip">
+                  <div class="context-tooltip-header">Context</div>
+                  <pre class="context-tooltip-content">{{ formatContext(asEquationCell(cell)) }}</pre>
                 </div>
               }
             </div>
@@ -111,10 +119,18 @@
                   (keydownEvent)="onCellKeyDown($event, nestedCell, asFolderCell(cell).cells)"
                 />
                 @if (asEquationCell(nestedCell).solutions && asEquationCell(nestedCell).solutions!.length > 0) {
-                  <div class="solutions-panel">
+                  <div class="solutions-panel"
+                       (mouseenter)="onSolutionMouseEnter(nestedCell.id)"
+                       (mouseleave)="onSolutionMouseLeave()">
                     @for (solution of asEquationCell(nestedCell).solutions; track $index) {
                       <div class="solution-item">
                         <app-latex-renderer [latex]="solution"></app-latex-renderer>
+                      </div>
+                    }
+                    @if (isDebugMode && hoveredCellId === nestedCell.id) {
+                      <div class="context-tooltip">
+                        <div class="context-tooltip-header">Context</div>
+                        <pre class="context-tooltip-content">{{ formatContext(asEquationCell(nestedCell)) }}</pre>
                       </div>
                     }
                   </div>

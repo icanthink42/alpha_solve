@@ -22,6 +22,18 @@ export class CellListComponent {
   dropTargetId: string | null = null;
   dropAtEndTarget: string | null = null;
 
+  // Debug mode
+  isDebugMode = false;
+  hoveredCellId: string | null = null;
+
+  constructor() {
+    // Check for debug mode in URL
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      this.isDebugMode = urlParams.get('debug') === 'true';
+    }
+  }
+
   onLatexChange(cell: EquationCell, newLatex: string, parentArray: Cell[]): void {
     // Check for cell type conversion keywords
     if (newLatex.toLowerCase() === 'folder') {
@@ -236,5 +248,25 @@ export class CellListComponent {
     noteCell.updatedAt = new Date();
 
     parentArray.splice(index, 1, noteCell);
+  }
+
+  onSolutionMouseEnter(cellId: string): void {
+    if (this.isDebugMode) {
+      this.hoveredCellId = cellId;
+    }
+  }
+
+  onSolutionMouseLeave(): void {
+    this.hoveredCellId = null;
+  }
+
+  formatContext(cell: EquationCell): string {
+    if (!cell.context || !cell.context.variables || cell.context.variables.length === 0) {
+      return 'No variables in context';
+    }
+
+    return cell.context.variables
+      .map(v => `${v.name} (${v.type}): [${v.values.join(', ')}]`)
+      .join('\n');
   }
 }
