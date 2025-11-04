@@ -6,7 +6,7 @@ This module is automatically loaded when a plugin uses the 'sympy' library.
 """
 
 import re
-from sympy import sympify, symbols, Eq, sqrt, sin, cos, tan, ln, log, exp, pi, E
+from sympy import sympify, symbols, Eq, sqrt, sin, cos, tan, ln, log, exp, pi, E, Derivative, Integral, Symbol
 from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
 
 
@@ -45,10 +45,78 @@ def from_latex(latex_str: str):
         return parse_expr(expr_str, transformations=(standard_transformations + (implicit_multiplication_application,)))
 
 
+def _handle_derivatives(latex: str) -> str:
+    """
+    Handle derivative notation (primes) in LaTeX.
+    Converts x', x'', x''' etc. to Derivative(x, t, n) where n is the number of primes.
+    """
+    # Match variable names followed by one or more primes
+    # Pattern: variable name (letters/numbers) followed by one or more '
+    pattern = r"([a-zA-Z][a-zA-Z0-9]*)('+)"
+
+    def replace_prime(match):
+        var_name = match.group(1)
+        primes = match.group(2)
+        num_primes = len(primes)
+
+        if num_primes == 1:
+            return f"Derivative({var_name}, t)"
+        else:
+            return f"Derivative({var_name}, t, {num_primes})"
+
+    return re.sub(pattern, replace_prime, latex)
+
+
+def _handle_integrals(latex: str) -> str:
+    """
+    Handle integral notation in LaTeX.
+    Converts:
+    - \int_a^b f(x) dx -> Integral(f(x), (x, a, b))
+    - \int f(x) dx -> Integral(f(x), x)
+    - ∫ (unicode) also supported
+    """
+    # Replace unicode integral symbol with \int
+    latex = latex.replace('∫', r'\int')
+
+    # Pattern for definite integral: \int_{lower}^{upper} ... d{var}
+    # This is complex because the integrand can contain nested expressions
+    # We'll use a simpler approach: find \int, find the d{var} at the end, extract everything
+
+    # First, handle definite integrals: \int_a^b or \int_{a}^{b}
+    definite_pattern = r'\\int_\{?([^{}^]+)\}?\^\{?([^{}]+)\}?\s*(.*?)\s*d([a-zA-Z])'
+
+    def replace_definite(match):
+        lower = match.group(1).strip()
+        upper = match.group(2).strip()
+        integrand = match.group(3).strip()
+        var = match.group(4)
+        return f"Integral({integrand}, ({var}, {lower}, {upper}))"
+
+    latex = re.sub(definite_pattern, replace_definite, latex)
+
+    # Then handle indefinite integrals: \int ... dx
+    indefinite_pattern = r'\\int\s+(.*?)\s*d([a-zA-Z])'
+
+    def replace_indefinite(match):
+        integrand = match.group(1).strip()
+        var = match.group(2)
+        return f"Integral({integrand}, {var})"
+
+    latex = re.sub(indefinite_pattern, replace_indefinite, latex)
+
+    return latex
+
+
 def _latex_to_sympy_str(latex: str) -> str:
     """
     Convert LaTeX math notation to a SymPy-parseable string.
     """
+    # Handle integrals before other transformations
+    latex = _handle_integrals(latex)
+
+    # Handle derivatives (prime notation) before other transformations
+    latex = _handle_derivatives(latex)
+
     # Remove \left, \right, and other formatting commands
     latex = re.sub(r'\\left|\\right', '', latex)
 
