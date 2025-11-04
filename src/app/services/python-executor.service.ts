@@ -22,6 +22,7 @@ export class PythonExecutorService {
   private isInitialized = false;
   private plugins: Plugin[] = [];
   private functionMap: Map<string, CellSolutionFunction> = new Map();
+  private functionPluginMap: Map<string, string> = new Map(); // Maps function name to plugin ID
 
   constructor() {}
 
@@ -36,6 +37,7 @@ export class PythonExecutorService {
     // Store plugins
     this.plugins = plugins;
     this.functionMap.clear();
+    this.functionPluginMap.clear();
 
     // Collect all Python libraries from plugins
     const librariesToLoad = new Set<string>();
@@ -95,20 +97,48 @@ export class PythonExecutorService {
       }
     }
 
-    // Combine all plugin Python code
-    const combinedCode = plugins
-      .map(plugin => plugin.pythonCode)
-      .filter(code => code && code.trim())
-      .join('\n\n');
+    // Create plugins directory if it doesn't exist
+    try {
+      await this.pyodide.runPythonAsync(`
+import sys
+import os
+if not os.path.exists('/plugins'):
+    os.makedirs('/plugins')
+if '/plugins' not in sys.path:
+    sys.path.insert(0, '/plugins')
+      `);
+    } catch (error) {
+      console.error('Failed to create plugins directory:', error);
+      throw new Error(`Plugin directory creation failed: ${error}`);
+    }
 
-    // Execute the combined plugin code to set up the environment
-    if (combinedCode) {
-      try {
-        await this.pyodide.runPythonAsync(combinedCode);
-        console.log(`Loaded ${plugins.length} plugin(s) successfully`);
-      } catch (error) {
-        console.error('Failed to execute plugin code:', error);
-        throw new Error(`Plugin initialization failed: ${error}`);
+    // Write each plugin as a separate module file and import all functions
+    for (const plugin of plugins) {
+      if (plugin.pythonCode && plugin.pythonCode.trim()) {
+        try {
+          // Sanitize plugin ID for use as module name (replace invalid characters)
+          const moduleId = plugin.id.replace(/[^a-zA-Z0-9_]/g, '_');
+          const modulePath = `/plugins/${moduleId}.py`;
+
+          // Write plugin code to filesystem
+          this.pyodide.FS.writeFile(modulePath, plugin.pythonCode);
+
+          // Import all functions from the plugin module to make them available globally
+          const functionNames = plugin.cellSolutionFunctions
+            .flatMap(func => [func.functionName, func.metaFunctionName])
+            .join(', ');
+
+          if (functionNames) {
+            await this.pyodide.runPythonAsync(`
+from ${moduleId} import ${functionNames}
+            `);
+          }
+
+          console.log(`Loaded plugin '${plugin.name}' as module: ${moduleId}`);
+        } catch (error) {
+          console.error(`Failed to load plugin '${plugin.name}':`, error);
+          throw new Error(`Plugin '${plugin.name}' initialization failed: ${error}`);
+        }
       }
     }
 
@@ -116,6 +146,8 @@ export class PythonExecutorService {
     for (const plugin of plugins) {
       for (const func of plugin.cellSolutionFunctions) {
         this.functionMap.set(func.functionName, func);
+        this.functionPluginMap.set(func.functionName, plugin.id);
+        this.functionPluginMap.set(func.metaFunctionName, plugin.id);
       }
     }
 
@@ -124,7 +156,7 @@ export class PythonExecutorService {
   }
 
   /**
-   * Load the alpha_solve Python library into Pyodide
+   * Load the alpha_solve Python library into Pyodide as a module
    */
   private async loadAlphaSolveLibrary(): Promise<void> {
     if (!this.pyodide) return;
@@ -137,8 +169,18 @@ export class PythonExecutorService {
       }
 
       const libraryCode = await response.text();
-      await this.pyodide.runPythonAsync(libraryCode);
-      console.log('Alpha Solve Python library loaded successfully');
+
+      // Write the file to Pyodide's virtual filesystem
+      this.pyodide.FS.writeFile('/alpha_solve.py', libraryCode);
+
+      // Ensure the root directory is in sys.path
+      await this.pyodide.runPythonAsync(`
+import sys
+if '/' not in sys.path:
+    sys.path.insert(0, '/')
+      `);
+
+      console.log('Alpha Solve Python library loaded successfully as module');
     } catch (error) {
       console.error('Failed to load alpha_solve library:', error);
       throw error;
@@ -146,7 +188,7 @@ export class PythonExecutorService {
   }
 
   /**
-   * Load the sympy_tools Python library into Pyodide
+   * Load the sympy_tools Python library into Pyodide as a module
    */
   private async loadSympyTools(): Promise<void> {
     if (!this.pyodide) return;
@@ -159,8 +201,13 @@ export class PythonExecutorService {
       }
 
       const libraryCode = await response.text();
-      await this.pyodide.runPythonAsync(libraryCode);
-      console.log('SymPy tools library loaded successfully');
+
+      // Write the file to Pyodide's virtual filesystem
+      this.pyodide.FS.writeFile('/sympy_tools.py', libraryCode);
+
+      // sys.path should already be set from loadAlphaSolveLibrary
+
+      console.log('SymPy tools library loaded successfully as module');
     } catch (error) {
       console.error('Failed to load sympy_tools library:', error);
       throw error;
@@ -195,11 +242,12 @@ export class PythonExecutorService {
 
       const code = `
 import json
+from alpha_solve import parse_input
 
 # Parse input using alpha_solve library
 input_data = parse_input(input_json_str)
 
-# Call the function
+# Call the function (already imported during plugin initialization)
 result = ${functionName}(input_data)
 
 # Convert result to dict and return as JSON
@@ -250,11 +298,12 @@ json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
 
       const code = `
 import json
+from alpha_solve import parse_input
 
 # Parse input using alpha_solve library
 input_data = parse_input(input_json_str)
 
-# Call the meta function
+# Call the meta function (already imported during plugin initialization)
 result = ${func.metaFunctionName}(input_data)
 
 # Convert result to dict and return as JSON
@@ -335,6 +384,7 @@ json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
   async reset(): Promise<void> {
     this.plugins = [];
     this.functionMap.clear();
+    this.functionPluginMap.clear();
     this.isInitialized = false;
     // Note: We keep pyodide loaded for performance
   }
