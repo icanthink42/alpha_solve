@@ -42,6 +42,7 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
   private initAttempts = 0;
   private maxAttempts = 50;
   private isInitializing = true;
+  private wasEmptyBeforeKeypress = false;
 
   ngAfterViewInit(): void {
     this.waitForMathQuillAndInitialize();
@@ -87,10 +88,24 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
       this.mathField.latex(this.latex);
     }
 
-    // Add keyboard event listener
+    // Add keyboard event listener in CAPTURE phase to run before MathQuill
     this.mathquillField.nativeElement.addEventListener('keydown', (event: KeyboardEvent) => {
+      // For delete/backspace, capture the empty state BEFORE MathQuill processes it
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const currentLatex = this.mathField.latex();
+        this.wasEmptyBeforeKeypress = !currentLatex || currentLatex.trim() === '';
+
+        // Only notify parent if field is ALREADY empty (to delete the cell)
+        // If field has content, let MathQuill handle it without notifying parent
+        if (this.wasEmptyBeforeKeypress) {
+          this.keydownEvent.emit(event);
+        }
+        return;
+      }
+
+      // For other keys, always notify parent
       this.keydownEvent.emit(event);
-    });
+    }, true); // true = use capture phase
 
     // Allow changes after initialization is complete
     setTimeout(() => {
