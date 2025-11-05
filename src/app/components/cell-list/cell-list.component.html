@@ -9,6 +9,7 @@
   @for (cell of cells; track cell.id) {
     <div
       class="cell-item"
+      [attr.data-cell-id]="cell.id"
       [class.drop-target]="dropTargetId === cell.id"
       (dragover)="onDragOver($event, cell)"
       (dragleave)="onDragLeave($event)"
@@ -34,6 +35,9 @@
             [latex]="asEquationCell(cell).latex"
             (latexChange)="onLatexChange(asEquationCell(cell), $event, cells)"
             (keydownEvent)="onCellKeyDown($event, cell, cells)"
+            (navigateUp)="onNavigateUp(cell, cells)"
+            (navigateDown)="onNavigateDown(cell, cells)"
+            (createCellBelow)="onCreateCellBelow(cell, cells)"
           />
           @if (asEquationCell(cell).solutions && asEquationCell(cell).solutions!.length > 0) {
             <div class="solutions-panel"
@@ -92,6 +96,7 @@
         @for (nestedCell of asFolderCell(cell).cells; track nestedCell.id) {
           <div
             class="cell-item nested"
+            [attr.data-cell-id]="nestedCell.id"
             [class.drop-target]="dropTargetId === nestedCell.id"
             (dragover)="onDragOver($event, nestedCell)"
             (dragleave)="onDragLeave($event)"
@@ -117,6 +122,9 @@
                   [latex]="asEquationCell(nestedCell).latex"
                   (latexChange)="onLatexChange(asEquationCell(nestedCell), $event, asFolderCell(cell).cells)"
                   (keydownEvent)="onCellKeyDown($event, nestedCell, asFolderCell(cell).cells)"
+                  (navigateUp)="onNavigateUp(nestedCell, asFolderCell(cell).cells)"
+                  (navigateDown)="onNavigateDown(nestedCell, asFolderCell(cell).cells)"
+                  (createCellBelow)="onCreateCellBelow(nestedCell, asFolderCell(cell).cells)"
                 />
                 @if (asEquationCell(nestedCell).solutions && asEquationCell(nestedCell).solutions!.length > 0) {
                   <div class="solutions-panel"

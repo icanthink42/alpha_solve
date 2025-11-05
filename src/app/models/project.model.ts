@@ -134,7 +134,8 @@ export class Project {
     // Find the cell and its parent array
     const result = this.findCellWithParent(this.cells, cellId);
     if (!result) {
-      throw new Error(`Cell with ID ${cellId} not found`);
+      // Cell not found - it may have been deleted, so just return silently
+      return;
     }
 
     const { cell, parentArray, index } = result;

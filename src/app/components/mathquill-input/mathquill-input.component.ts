@@ -35,6 +35,9 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
   @Input() latex: string = '';
   @Output() latexChange = new EventEmitter<string>();
   @Output() keydownEvent = new EventEmitter<KeyboardEvent>();
+  @Output() navigateUp = new EventEmitter<void>();
+  @Output() navigateDown = new EventEmitter<void>();
+  @Output() createCellBelow = new EventEmitter<void>();
 
   private mathField: any;
   private onChange: (value: string) => void = () => {};
@@ -42,7 +45,6 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
   private initAttempts = 0;
   private maxAttempts = 50;
   private isInitializing = true;
-  private wasEmptyBeforeKeypress = false;
 
   ngAfterViewInit(): void {
     this.waitForMathQuillAndInitialize();
@@ -81,6 +83,12 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
           this.latexChange.emit(latex);
           this.onChange(latex);
         },
+        upOutOf: () => {
+          this.navigateUp.emit();
+        },
+        downOutOf: () => {
+          this.navigateDown.emit();
+        },
       },
     });
 
@@ -90,14 +98,21 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
 
     // Add keyboard event listener in CAPTURE phase to run before MathQuill
     this.mathquillField.nativeElement.addEventListener('keydown', (event: KeyboardEvent) => {
-      // For delete/backspace, capture the empty state BEFORE MathQuill processes it
+      // Handle Enter key - create new cell below
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.createCellBelow.emit();
+        return;
+      }
+
+      // For delete/backspace, check if field is empty BEFORE MathQuill processes it
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const currentLatex = this.mathField.latex();
-        this.wasEmptyBeforeKeypress = !currentLatex || currentLatex.trim() === '';
+        const isEmpty = !currentLatex || currentLatex.trim() === '';
 
         // Only notify parent if field is ALREADY empty (to delete the cell)
         // If field has content, let MathQuill handle it without notifying parent
-        if (this.wasEmptyBeforeKeypress) {
+        if (isEmpty) {
           this.keydownEvent.emit(event);
         }
         return;
@@ -131,6 +146,13 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
 
   setDisabledState?(isDisabled: boolean): void {
     // Handle disabled state if needed
+  }
+
+  // Public method to focus the MathQuill field
+  focus(): void {
+    if (this.mathField) {
+      this.mathField.focus();
+    }
   }
 }
 

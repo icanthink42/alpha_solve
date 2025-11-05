@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CellListComponent } from './components/cell-list/cell-list.component';
@@ -12,7 +12,8 @@ import { PythonExecutorService } from './services/python-executor.service';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
+export class App implements AfterViewInit {
+  @ViewChild(CellListComponent) cellListComponent!: CellListComponent;
   protected readonly title = signal('alpha_solve');
   protected project: Project;
   protected selectedCell = signal<Cell | null>(null);
@@ -45,6 +46,18 @@ export class App {
           this.sidebarWidth.set(this.getInitialSidebarWidth());
         }
       });
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Focus the first cell after the view is initialized
+    if (this.cellListComponent) {
+      const firstCell = this.findFirstCell(this.project.cells);
+      if (firstCell) {
+        setTimeout(() => {
+          this.cellListComponent.focusCell(firstCell);
+        }, 0);
+      }
     }
   }
 
@@ -93,6 +106,7 @@ export class App {
 
   private createSampleProject(): Project {
     const project = Project.create('My Project');
+    project.addCell(CellSerializer.createEquationCell(''));
 
     return project;
   }

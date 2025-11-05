@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Cell, EquationCell, NoteCell, FolderCell, CellSerializer } from '../../models';
@@ -15,6 +15,7 @@ export class CellListComponent {
   @Input() cells: Cell[] = [];
   @Output() cellSelected = new EventEmitter<Cell>();
   @Output() cellUpdated = new EventEmitter<string>();
+  @ViewChildren(MathQuillInputComponent) mathquillInputs!: QueryList<MathQuillInputComponent>;
 
   expandedFolders = new Set<string>();
   draggedCell: Cell | null = null;
@@ -213,9 +214,20 @@ export class CellListComponent {
   addNewCell(parentArray: Cell[]): void {
     const newCell = CellSerializer.createEquationCell('');
     parentArray.push(newCell);
+
+    // Focus the new cell after it's been added to the DOM
+    setTimeout(() => {
+      this.focusCell(newCell);
+    }, 0);
   }
 
   onCellKeyDown(event: KeyboardEvent, cell: Cell, parentArray: Cell[]): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.onCreateCellBelow(cell, parentArray);
+      return;
+    }
+
     if (event.key === 'Delete' || event.key === 'Backspace') {
       if (this.isCellEmpty(cell)) {
         event.preventDefault();
@@ -241,6 +253,12 @@ export class CellListComponent {
     const index = parentArray.indexOf(cell);
     if (index === -1) return;
 
+    // Find the cell to focus after deletion (the one before this one)
+    let cellToFocus: Cell | null = null;
+    if (index > 0) {
+      cellToFocus = parentArray[index - 1];
+    }
+
     // If it's a folder, move its children up
     if (cell.type === 'folder') {
       const folderCell = cell as FolderCell;
@@ -251,6 +269,13 @@ export class CellListComponent {
     } else {
       // Just remove the cell
       parentArray.splice(index, 1);
+    }
+
+    // Focus the previous cell if it exists
+    if (cellToFocus) {
+      setTimeout(() => {
+        this.focusCell(cellToFocus!);
+      }, 0);
     }
   }
 
@@ -307,5 +332,71 @@ export class CellListComponent {
     } catch (error) {
       console.error('Failed to copy solution to clipboard:', error);
     }
+  }
+
+  onNavigateUp(cell: Cell, parentArray: Cell[]): void {
+    const index = parentArray.indexOf(cell);
+    if (index > 0) {
+      const previousCell = parentArray[index - 1];
+      this.focusCell(previousCell);
+    }
+  }
+
+  onNavigateDown(cell: Cell, parentArray: Cell[]): void {
+    const index = parentArray.indexOf(cell);
+    if (index < parentArray.length - 1) {
+      const nextCell = parentArray[index + 1];
+      this.focusCell(nextCell);
+    }
+  }
+
+  onCreateCellBelow(cell: Cell, parentArray: Cell[]): void {
+    const index = parentArray.indexOf(cell);
+    const newCell = CellSerializer.createEquationCell('');
+    parentArray.splice(index + 1, 0, newCell);
+
+    // Focus the new cell after it's been added to the DOM
+    setTimeout(() => {
+      this.focusCell(newCell);
+    }, 0);
+  }
+
+  public focusCell(cell: Cell): void {
+    setTimeout(() => {
+      const cellElement = document.querySelector(`[data-cell-id="${cell.id}"]`);
+      if (cellElement) {
+        if (cell.type === 'equation') {
+          const cellIndex = this.findCellIndexInAllCells(cell);
+          const mathquillInputsArray = this.mathquillInputs.toArray();
+
+          if (cellIndex >= 0 && cellIndex < mathquillInputsArray.length) {
+            mathquillInputsArray[cellIndex].focus();
+          }
+        } else {
+          const inputElement = cellElement.querySelector('.note-input, .folder-input') as HTMLInputElement;
+          if (inputElement) {
+            inputElement.focus();
+          }
+        }
+      }
+    }, 0);
+  }
+
+  private findCellIndexInAllCells(targetCell: Cell): number {
+    const equationCells: Cell[] = [];
+
+    const collectEquationCells = (cells: Cell[]) => {
+      for (const cell of cells) {
+        if (cell.type === 'equation') {
+          equationCells.push(cell);
+        }
+        if (cell.type === 'folder') {
+          collectEquationCells((cell as FolderCell).cells);
+        }
+      }
+    };
+
+    collectEquationCells(this.cells);
+    return equationCells.findIndex(cell => cell.id === targetCell.id);
   }
 }

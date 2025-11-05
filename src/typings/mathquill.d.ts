@@ -13,6 +13,7 @@ declare module 'mathquill' {
     handlers?: {
       edit?: (mathField: MathFieldAPI) => void;
       upOutOf?: (mathField: MathFieldAPI) => void;
+      downOutOf?: (mathField: MathFieldAPI) => void;
       moveOutOf?: (dir: number, mathField: MathFieldAPI) => void;
     };
   }
