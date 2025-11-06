@@ -316,9 +316,11 @@ export class Project {
     }
 
     if (metaResults.length === 0) {
-      // No meta functions available, propagate context and clear solutions
+      // No meta functions available, propagate context and clear solutions/dropdowns
       cell.context = inputContext;
       cell.solutions = [];
+      cell.dropdowns = undefined;
+      cell.dropdownSelections = undefined;
       cell.updatedAt = new Date();
       return inputContext;
     }
@@ -327,9 +329,11 @@ export class Project {
     const usableResults = metaResults.filter(mr => mr.result.useResult);
 
     if (usableResults.length === 0) {
-      // No functions want to be used, propagate context and clear solutions
+      // No functions want to be used, propagate context and clear solutions/dropdowns
       cell.context = inputContext;
       cell.solutions = [];
+      cell.dropdowns = undefined;
+      cell.dropdownSelections = undefined;
       cell.updatedAt = new Date();
       return inputContext;
     }
