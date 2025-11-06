@@ -131,6 +131,11 @@ def _latex_to_sympy_str(latex: str) -> str:
     for letter in greek_letters:
         latex = latex.replace(f'\\{letter}', letter)
 
+    # Add implicit multiplication between variables/numbers and Greek letters
+    # e.g., falpha -> f*alpha, 2beta -> 2*beta
+    for letter in greek_letters:
+        latex = re.sub(rf'([a-zA-Z0-9_])({letter})', rf'\1*\2', latex)
+
     # Replace square roots BEFORE fractions: \sqrt{x} -> sqrt(x)
     # This way \sqrt{2} becomes sqrt(2) before we process fractions
     latex = re.sub(r'\\sqrt\{([^{}]*)\}', r'sqrt(\1)', latex)
