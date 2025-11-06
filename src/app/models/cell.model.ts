@@ -1,4 +1,5 @@
 import { Context, serializeContext, deserializeContext, createContext } from './context.model';
+import { DropdownSelection, Dropdown } from './dropdown.model';
 
 /**
  * Base interface for all cell types
@@ -18,6 +19,8 @@ export interface EquationCell extends BaseCell {
   latex: string;
   context?: Context;
   solutions?: string[];
+  dropdowns?: Dropdown[];
+  dropdownSelections?: DropdownSelection[];
 }
 
 /**
@@ -56,6 +59,8 @@ export interface SerializableCell {
   content?: string;
   context?: any;
   solutions?: string[];
+  dropdowns?: Dropdown[];
+  dropdownSelections?: DropdownSelection[];
 }
 
 /**
@@ -79,7 +84,9 @@ export class CellSerializer {
           ...base,
           latex: cell.latex,
           context: cell.context ? serializeContext(cell.context) : undefined,
-          solutions: cell.solutions
+          solutions: cell.solutions,
+          dropdowns: cell.dropdowns,
+          dropdownSelections: cell.dropdownSelections
         };
       case 'folder':
         return {
@@ -109,7 +116,9 @@ export class CellSerializer {
           type: 'equation',
           latex: data.latex || '',
           context: data.context ? deserializeContext(data.context) : undefined,
-          solutions: data.solutions
+          solutions: data.solutions,
+          dropdowns: data.dropdowns,
+          dropdownSelections: data.dropdownSelections
         };
       case 'folder':
         return {

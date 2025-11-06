@@ -80,6 +80,7 @@ export function deserializeContext(data: any): Context {
 export interface CellFunctionInput {
   cell: any; // The cell object (can be any cell type)
   context: Context;
+  dropdownSelections?: any[]; // DropdownSelection[]
 }
 
 /**
@@ -97,7 +98,8 @@ export function createContext(variables: Variable[] = []): Context {
 export function createCellFunctionInput(cell: any, context: Context): CellFunctionInput {
   return {
     cell,
-    context
+    context,
+    dropdownSelections: (cell as any).dropdownSelections
   };
 }
 

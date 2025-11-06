@@ -60,6 +60,12 @@ export class CellListComponent {
     this.cellUpdated.emit(cell.id);
   }
 
+  onDropdownChange(cell: EquationCell): void {
+    // When dropdown selection changes, update the cell and trigger recalculation
+    cell.updatedAt = new Date();
+    this.cellUpdated.emit(cell.id);
+  }
+
   onFolderNameChange(cell: FolderCell, newName: string): void {
     cell.name = newName;
     cell.updatedAt = new Date();

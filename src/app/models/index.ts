@@ -9,4 +9,5 @@ export * from './cell-function-result.model';
 export * from './meta-function-result.model';
 export * from './proc-macro-input.model';
 export * from './proc-macro-result.model';
+export * from './dropdown.model';
 

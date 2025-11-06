@@ -4,6 +4,7 @@ import { Context, createCellFunctionInput, createContext } from './context.model
 import { MetaFunctionResult } from './meta-function-result.model';
 import { CellFunctionResult } from './cell-function-result.model';
 import { createProcMacroInput } from './proc-macro-input.model';
+import { createDropdownSelection } from './dropdown.model';
 
 /**
  * Main project class containing a list of cells
@@ -336,6 +337,31 @@ export class Project {
     // Sort by index and choose the top one (lowest index)
     usableResults.sort((a, b) => a.result.index - b.result.index);
     const selectedFunction = usableResults[0];
+
+    // Store dropdowns from the selected meta function result
+    if (selectedFunction.result.dropdowns && selectedFunction.result.dropdowns.length > 0) {
+      cell.dropdowns = selectedFunction.result.dropdowns;
+
+      // Initialize dropdown selections if not already set
+      if (!cell.dropdownSelections || cell.dropdownSelections.length === 0) {
+        cell.dropdownSelections = selectedFunction.result.dropdowns.map(d => createDropdownSelection(d));
+      } else {
+        // Update dropdown selections to match current dropdowns
+        // Keep existing selections where possible, add new ones for new dropdowns
+        const newSelections = selectedFunction.result.dropdowns.map(dropdown => {
+          const existing = cell.dropdownSelections?.find(s => s.title === dropdown.title);
+          if (existing && dropdown.items.includes(existing.selectedItem)) {
+            return existing;
+          }
+          return createDropdownSelection(dropdown);
+        });
+        cell.dropdownSelections = newSelections;
+      }
+    } else {
+      // No dropdowns from meta function, clear them
+      cell.dropdowns = undefined;
+      cell.dropdownSelections = undefined;
+    }
 
     // Run the selected function to get new context (using the potentially modified cell)
     try {

@@ -39,6 +39,23 @@
             (navigateDown)="onNavigateDown(cell, cells)"
             (createCellBelow)="onCreateCellBelow(cell, cells)"
           />
+          @if (asEquationCell(cell).dropdowns && asEquationCell(cell).dropdowns!.length > 0) {
+            <div class="dropdowns-panel">
+              @for (dropdown of asEquationCell(cell).dropdowns; track $index; let i = $index) {
+                <div class="dropdown-item">
+                  <label class="dropdown-label">{{ dropdown.title }}</label>
+                  <select
+                    class="dropdown-select"
+                    [(ngModel)]="asEquationCell(cell).dropdownSelections![i].selectedItem"
+                    (ngModelChange)="onDropdownChange(asEquationCell(cell))">
+                    @for (item of dropdown.items; track item) {
+                      <option [value]="item">{{ item }}</option>
+                    }
+                  </select>
+                </div>
+              }
+            </div>
+          }
           @if (asEquationCell(cell).solutions && asEquationCell(cell).solutions!.length > 0) {
             <div class="solutions-panel"
                  (mouseenter)="onSolutionMouseEnter(cell.id)"
@@ -126,6 +143,23 @@
                   (navigateDown)="onNavigateDown(nestedCell, asFolderCell(cell).cells)"
                   (createCellBelow)="onCreateCellBelow(nestedCell, asFolderCell(cell).cells)"
                 />
+                @if (asEquationCell(nestedCell).dropdowns && asEquationCell(nestedCell).dropdowns!.length > 0) {
+                  <div class="dropdowns-panel">
+                    @for (dropdown of asEquationCell(nestedCell).dropdowns; track $index; let i = $index) {
+                      <div class="dropdown-item">
+                        <label class="dropdown-label">{{ dropdown.title }}</label>
+                        <select
+                          class="dropdown-select"
+                          [(ngModel)]="asEquationCell(nestedCell).dropdownSelections![i].selectedItem"
+                          (ngModelChange)="onDropdownChange(asEquationCell(nestedCell))">
+                          @for (item of dropdown.items; track item) {
+                            <option [value]="item">{{ item }}</option>
+                          }
+                        </select>
+                      </div>
+                    }
+                  </div>
+                }
                 @if (asEquationCell(nestedCell).solutions && asEquationCell(nestedCell).solutions!.length > 0) {
                   <div class="solutions-panel"
                        (mouseenter)="onSolutionMouseEnter(nestedCell.id)"

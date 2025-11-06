@@ -83,19 +83,67 @@ class Context:
 
 
 @dataclass
+class DropdownSelection:
+    """
+    User's selection from a dropdown
+    """
+    title: str
+    selected_item: str
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'DropdownSelection':
+        """Create DropdownSelection from a dictionary"""
+        return DropdownSelection(
+            title=data['title'],
+            selected_item=data.get('selectedItem', data.get('selected_item', ''))
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DropdownSelection to dictionary"""
+        return {
+            'title': self.title,
+            'selected_item': self.selected_item
+        }
+
+
+@dataclass
+class Dropdown:
+    """
+    Dropdown UI element that can be provided by meta functions
+    """
+    title: str
+    items: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Dropdown to dictionary"""
+        return {
+            'title': self.title,
+            'items': self.items
+        }
+
+
+@dataclass
 class CellFunctionInput:
     """
     Input structure passed to cell solution functions
     """
     cell: Dict[str, Any]
     context: Context
+    dropdown_selections: Optional[List[DropdownSelection]] = None
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> 'CellFunctionInput':
         """Create CellFunctionInput from a dictionary"""
+        dropdown_selections = None
+        if 'dropdownSelections' in data or 'dropdown_selections' in data:
+            selections_data = data.get('dropdownSelections', data.get('dropdown_selections', []))
+            if selections_data:
+                dropdown_selections = [DropdownSelection.from_dict(s) for s in selections_data]
+
         return CellFunctionInput(
             cell=data['cell'],
-            context=Context.from_dict(data['context'])
+            context=Context.from_dict(data['context']),
+            dropdown_selections=dropdown_selections
         )
 
     @staticmethod
@@ -106,10 +154,22 @@ class CellFunctionInput:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert CellFunctionInput to dictionary"""
-        return {
+        result = {
             'cell': self.cell,
             'context': self.context.to_dict()
         }
+        if self.dropdown_selections:
+            result['dropdown_selections'] = [s.to_dict() for s in self.dropdown_selections]
+        return result
+
+    def get_dropdown_selection(self, title: str) -> Optional[str]:
+        """Get the selected item for a dropdown by title"""
+        if not self.dropdown_selections:
+            return None
+        for selection in self.dropdown_selections:
+            if selection.title == title:
+                return selection.selected_item
+        return None
 
 
 @dataclass
@@ -142,14 +202,18 @@ class MetaFunctionResult:
     index: int
     name: str
     use_result: bool = True
+    dropdowns: Optional[List[Dropdown]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert MetaFunctionResult to dictionary"""
-        return {
+        result = {
             'index': self.index,
             'name': self.name,
             'use_result': self.use_result
         }
+        if self.dropdowns:
+            result['dropdowns'] = [d.to_dict() for d in self.dropdowns]
+        return result
 
     def to_json(self) -> str:
         """Convert MetaFunctionResult to JSON string"""
