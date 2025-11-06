@@ -131,16 +131,21 @@ def _latex_to_sympy_str(latex: str) -> str:
     for letter in greek_letters:
         latex = latex.replace(f'\\{letter}', letter)
 
+    # Replace square roots BEFORE fractions: \sqrt{x} -> sqrt(x)
+    # This way \sqrt{2} becomes sqrt(2) before we process fractions
+    latex = re.sub(r'\\sqrt\{([^{}]*)\}', r'sqrt(\1)', latex)
+
+    # Add implicit multiplication between variables/numbers and sqrt
+    # e.g., asqrt(2) -> a*sqrt(2), 2sqrt(3) -> 2*sqrt(3)
+    latex = re.sub(r'([a-zA-Z0-9_])sqrt\(', r'\1*sqrt(', latex)
+
     # Replace fractions: \frac{a}{b} -> (a)/(b)
-    # Now that subscripts and Greek letters are simplified, this will work
+    # Now that subscripts, Greek letters, and square roots are simplified, this will work
     # Limit iterations to prevent infinite loops
     for _ in range(100):
         if r'\frac' not in latex:
             break
         latex = re.sub(r'\\frac\{([^{}]*)\}\{([^{}]*)\}', r'((\1)/(\2))', latex)
-
-    # Replace square roots: \sqrt{x} -> sqrt(x)
-    latex = re.sub(r'\\sqrt\{([^{}]*)\}', r'sqrt(\1)', latex)
 
     # Replace exponents: ^ -> **
     latex = latex.replace('^', '**')
