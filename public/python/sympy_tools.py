@@ -134,7 +134,7 @@ def _latex_to_sympy_str(latex: str) -> str:
     # Replace fractions: \frac{a}{b} -> (a)/(b)
     # Now that subscripts and Greek letters are simplified, this will work
     # Limit iterations to prevent infinite loops
-    for _ in range(10):
+    for _ in range(100):
         if r'\frac' not in latex:
             break
         latex = re.sub(r'\\frac\{([^{}]*)\}\{([^{}]*)\}', r'((\1)/(\2))', latex)
