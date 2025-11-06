@@ -7,4 +7,6 @@ export * from './plugin.model';
 export * from './context.model';
 export * from './cell-function-result.model';
 export * from './meta-function-result.model';
+export * from './proc-macro-input.model';
+export * from './proc-macro-result.model';
 

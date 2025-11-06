@@ -3,15 +3,18 @@ import { loadPyodide, type PyodideInterface } from 'pyodide';
 import {
   Plugin,
   CellSolutionFunction,
+  ProcMacroFunction,
   CellFunctionInput,
   CellFunctionResult,
-  MetaFunctionResult
+  MetaFunctionResult,
+  ProcMacroInput,
+  ProcMacroResult
 } from '../models';
 
 export interface PythonExecutionResult {
   output: string;
   error?: string;
-  result?: CellFunctionResult | MetaFunctionResult;
+  result?: CellFunctionResult | MetaFunctionResult | ProcMacroResult;
 }
 
 @Injectable({
@@ -22,6 +25,7 @@ export class PythonExecutorService {
   private isInitialized = false;
   private plugins: Plugin[] = [];
   private functionMap: Map<string, CellSolutionFunction> = new Map();
+  private procMacroMap: Map<string, ProcMacroFunction> = new Map();
   private functionPluginMap: Map<string, string> = new Map(); // Maps function name to plugin ID
 
   constructor() {}
@@ -37,6 +41,7 @@ export class PythonExecutorService {
     // Store plugins
     this.plugins = plugins;
     this.functionMap.clear();
+    this.procMacroMap.clear();
     this.functionPluginMap.clear();
 
     // Collect all Python libraries from plugins
@@ -123,14 +128,24 @@ if '/plugins' not in sys.path:
           // Write plugin code to filesystem
           this.pyodide.FS.writeFile(modulePath, plugin.pythonCode);
 
-          // Import all functions from the plugin module to make them available globally
-          const functionNames = plugin.cellSolutionFunctions
-            .flatMap(func => [func.functionName, func.metaFunctionName])
-            .join(', ');
+          // Import all functions (cell solution functions + proc macros) from the plugin module
+          const cellFunctionNames = plugin.cellSolutionFunctions
+            .flatMap(func => [func.functionName, func.metaFunctionName]);
 
-          if (functionNames) {
+          const procMacroNames = plugin.procMacroFunctions
+            .flatMap(macro => {
+              const names = [macro.functionName];
+              if (macro.metaFunctionName) {
+                names.push(macro.metaFunctionName);
+              }
+              return names;
+            });
+
+          const allFunctionNames = [...cellFunctionNames, ...procMacroNames].join(', ');
+
+          if (allFunctionNames) {
             await this.pyodide.runPythonAsync(`
-from ${moduleId} import ${functionNames}
+from ${moduleId} import ${allFunctionNames}
             `);
           }
 
@@ -142,16 +157,24 @@ from ${moduleId} import ${functionNames}
       }
     }
 
-    // Build function map from all plugins
+    // Build function maps from all plugins
     for (const plugin of plugins) {
       for (const func of plugin.cellSolutionFunctions) {
         this.functionMap.set(func.functionName, func);
         this.functionPluginMap.set(func.functionName, plugin.id);
         this.functionPluginMap.set(func.metaFunctionName, plugin.id);
       }
+
+      for (const macro of plugin.procMacroFunctions) {
+        this.procMacroMap.set(macro.functionName, macro);
+        this.functionPluginMap.set(macro.functionName, plugin.id);
+        if (macro.metaFunctionName) {
+          this.functionPluginMap.set(macro.metaFunctionName, plugin.id);
+        }
+      }
     }
 
-    console.log(`Registered ${this.functionMap.size} cell solution function(s)`);
+    console.log(`Registered ${this.functionMap.size} cell solution function(s) and ${this.procMacroMap.size} proc macro(s)`);
     this.isInitialized = true;
   }
 
@@ -327,6 +350,127 @@ json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
   }
 
   /**
+   * Call a proc macro function by name
+   */
+  async callProcMacro(functionName: string, input: ProcMacroInput): Promise<PythonExecutionResult> {
+    if (!this.isInitialized || !this.pyodide) {
+      return {
+        output: '',
+        error: 'Python executor not initialized. Call initialize() first.'
+      };
+    }
+
+    const macro = this.procMacroMap.get(functionName);
+    if (!macro) {
+      return {
+        output: '',
+        error: `Proc macro '${functionName}' not found in loaded plugins`
+      };
+    }
+
+    try {
+      // Convert input to Python-compatible format and call proc macro
+      const inputJson = JSON.stringify(input);
+
+      // Set the JSON as a Python variable to avoid escaping issues
+      this.pyodide.globals.set('input_json_str', inputJson);
+
+      const code = `
+import json
+from alpha_solve import parse_proc_macro_input
+
+# Parse input using alpha_solve library
+input_data = parse_proc_macro_input(input_json_str)
+
+# Call the proc macro (already imported during plugin initialization)
+result = ${functionName}(input_data)
+
+# Convert result to dict and return as JSON
+json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
+      `;
+
+      const resultJson = await this.pyodide.runPythonAsync(code);
+      const resultData = JSON.parse(resultJson);
+      const result = ProcMacroResult.fromJSON(resultData);
+
+      return {
+        output: resultJson,
+        result
+      };
+    } catch (error: any) {
+      return {
+        output: '',
+        error: error.message || String(error)
+      };
+    }
+  }
+
+  /**
+   * Call a meta function associated with a proc macro
+   */
+  async callProcMacroMetaFunction(functionName: string, input: ProcMacroInput): Promise<PythonExecutionResult> {
+    if (!this.isInitialized || !this.pyodide) {
+      return {
+        output: '',
+        error: 'Python executor not initialized. Call initialize() first.'
+      };
+    }
+
+    const macro = this.procMacroMap.get(functionName);
+    if (!macro) {
+      return {
+        output: '',
+        error: `Proc macro '${functionName}' not found in loaded plugins`
+      };
+    }
+
+    if (!macro.metaFunctionName) {
+      // No meta function defined - return default: always use at order 0
+      const defaultMeta = new MetaFunctionResult(0, '', true);
+      return {
+        output: JSON.stringify(defaultMeta.toJSON()),
+        result: defaultMeta
+      };
+    }
+
+    try {
+      // Convert input to Python-compatible format and call meta function
+      const inputJson = JSON.stringify(input);
+
+      // Set the JSON as a Python variable to avoid escaping issues
+      this.pyodide.globals.set('input_json_str', inputJson);
+
+      const code = `
+import json
+from alpha_solve import parse_proc_macro_input
+
+# Parse input using alpha_solve library
+input_data = parse_proc_macro_input(input_json_str)
+
+# Call the meta function (already imported during plugin initialization)
+result = ${macro.metaFunctionName}(input_data)
+
+# Convert result to dict and return as JSON
+json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
+      `;
+
+      const resultJson = await this.pyodide.runPythonAsync(code);
+      const resultData = JSON.parse(resultJson);
+      const result = MetaFunctionResult.fromJSON(resultData);
+
+      return {
+        output: resultJson,
+        result
+      };
+    } catch (error: any) {
+      return {
+        output: '',
+        error: error.message || String(error)
+      };
+    }
+  }
+
+  /**
    * Execute arbitrary Python code
    */
   async execute(code: string): Promise<PythonExecutionResult> {
@@ -365,6 +509,13 @@ json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
   }
 
   /**
+   * Get all available proc macros
+   */
+  getAvailableProcMacros(): ProcMacroFunction[] {
+    return Array.from(this.procMacroMap.values());
+  }
+
+  /**
    * Check if a function is available
    */
   hasFunction(functionName: string): boolean {
@@ -384,6 +535,7 @@ json.dumps(result.to_dict() if hasattr(result, 'to_dict') else result)
   async reset(): Promise<void> {
     this.plugins = [];
     this.functionMap.clear();
+    this.procMacroMap.clear();
     this.functionPluginMap.clear();
     this.isInitialized = false;
     // Note: We keep pyodide loaded for performance

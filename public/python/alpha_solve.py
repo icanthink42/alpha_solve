@@ -156,6 +156,55 @@ class MetaFunctionResult:
         return json.dumps(self.to_dict())
 
 
+@dataclass
+class ProcMacroInput:
+    """
+    Input structure passed to proc macro functions
+    """
+    latex: str
+    context: Context
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'ProcMacroInput':
+        """Create ProcMacroInput from a dictionary"""
+        return ProcMacroInput(
+            latex=data['latex'],
+            context=Context.from_dict(data['context'])
+        )
+
+    @staticmethod
+    def from_json(json_str: str) -> 'ProcMacroInput':
+        """Create ProcMacroInput from a JSON string"""
+        data = json.loads(json_str)
+        return ProcMacroInput.from_dict(data)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ProcMacroInput to dictionary"""
+        return {
+            'latex': self.latex,
+            'context': self.context.to_dict()
+        }
+
+
+@dataclass
+class ProcMacroResult:
+    """
+    Result returned from a proc macro function
+    Contains modified LaTeX content that will be passed to cell solution functions
+    """
+    modified_latex: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ProcMacroResult to dictionary"""
+        return {
+            'modified_latex': self.modified_latex
+        }
+
+    def to_json(self) -> str:
+        """Convert ProcMacroResult to JSON string"""
+        return json.dumps(self.to_dict())
+
+
 # Helper functions
 
 def create_context(variables: Optional[List[Variable]] = None) -> Context:
@@ -166,7 +215,15 @@ def create_context(variables: Optional[List[Variable]] = None) -> Context:
 def parse_input(json_str: str) -> CellFunctionInput:
     """
     Parse JSON input string into CellFunctionInput
-    This is the main function to use at the start of your plugin functions
+    This is the main function to use at the start of your cell solution functions
     """
     return CellFunctionInput.from_json(json_str)
+
+
+def parse_proc_macro_input(json_str: str) -> ProcMacroInput:
+    """
+    Parse JSON input string into ProcMacroInput
+    This is the main function to use at the start of your proc macro functions
+    """
+    return ProcMacroInput.from_json(json_str)
 

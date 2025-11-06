@@ -3,6 +3,7 @@ import { PythonExecutorService } from '../services/python-executor.service';
 import { Context, createCellFunctionInput, createContext } from './context.model';
 import { MetaFunctionResult } from './meta-function-result.model';
 import { CellFunctionResult } from './cell-function-result.model';
+import { createProcMacroInput } from './proc-macro-input.model';
 
 /**
  * Main project class containing a list of cells
@@ -210,10 +211,83 @@ export class Project {
   }
 
   /**
+   * Run proc macros on a cell to potentially modify its content
+   * Returns a modified copy of the cell if any proc macro modifies it, otherwise returns the original cell
+   */
+  private async runProcMacros(cell: EquationCell, inputContext: Context, pythonExecutor: PythonExecutorService): Promise<EquationCell> {
+    // Get all available proc macros
+    const availableMacros = pythonExecutor.getAvailableProcMacros();
+
+    if (availableMacros.length === 0) {
+      return cell;
+    }
+
+    // Call meta function for each available proc macro
+    const metaResults: { result: MetaFunctionResult; functionName: string }[] = [];
+
+    for (const macro of availableMacros) {
+      try {
+        const input = createProcMacroInput(cell.latex, inputContext);
+        const execResult = await pythonExecutor.callProcMacroMetaFunction(macro.functionName, input);
+
+        if (execResult.result) {
+          metaResults.push({
+            result: execResult.result as MetaFunctionResult,
+            functionName: macro.functionName
+          });
+        }
+      } catch (error) {
+        console.warn(`Failed to call proc macro meta function for ${macro.functionName}:`, error);
+      }
+    }
+
+    if (metaResults.length === 0) {
+      return cell;
+    }
+
+    // Filter out macros that returned use_result=False
+    const usableResults = metaResults.filter(mr => mr.result.useResult);
+
+    if (usableResults.length === 0) {
+      return cell;
+    }
+
+    // Sort by index and choose the top one (lowest index)
+    usableResults.sort((a, b) => a.result.index - b.result.index);
+    const selectedMacro = usableResults[0];
+
+    // Run the selected proc macro
+    try {
+      const input = createProcMacroInput(cell.latex, inputContext);
+      const execResult = await pythonExecutor.callProcMacro(selectedMacro.functionName, input);
+
+      if (execResult.result) {
+        const macroResult = execResult.result as any; // ProcMacroResult type
+
+        // If the proc macro modified the LaTeX, create a modified copy of the cell
+        if (macroResult.modifiedLatex) {
+          // Create a copy of the cell with modified LaTeX
+          const modifiedCell = { ...cell };
+          modifiedCell.latex = macroResult.modifiedLatex;
+          return modifiedCell;
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to execute proc macro ${selectedMacro.functionName}:`, error);
+    }
+
+    return cell;
+  }
+
+  /**
    * Update context for a single equation cell
    * Returns the new context after processing this cell
    */
   private async updateCellContext(cell: EquationCell, inputContext: Context, pythonExecutor: PythonExecutorService): Promise<Context> {
+    // Step 1: Run proc macros to potentially modify cell content
+    const modifiedCell = await this.runProcMacros(cell, inputContext, pythonExecutor);
+
+    // Step 2: Run cell solution functions on the potentially modified cell
     // Get all available functions
     const availableFunctions = pythonExecutor.getAvailableFunctions();
 
@@ -226,7 +300,7 @@ export class Project {
 
     for (const func of availableFunctions) {
       try {
-        const input = createCellFunctionInput(cell, inputContext);
+        const input = createCellFunctionInput(modifiedCell, inputContext);
         const execResult = await pythonExecutor.callMetaFunction(func.functionName, input);
 
         if (execResult.result) {
@@ -263,9 +337,9 @@ export class Project {
     usableResults.sort((a, b) => a.result.index - b.result.index);
     const selectedFunction = usableResults[0];
 
-    // Run the selected function to get new context
+    // Run the selected function to get new context (using the potentially modified cell)
     try {
-      const input = createCellFunctionInput(cell, inputContext);
+      const input = createCellFunctionInput(modifiedCell, inputContext);
       const execResult = await pythonExecutor.callFunction(selectedFunction.functionName, input);
 
       if (execResult.result) {

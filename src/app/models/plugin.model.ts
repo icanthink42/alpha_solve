@@ -12,6 +12,15 @@ export interface CellSolutionFunction {
 }
 
 /**
+ * Represents a reference to Python proc macro functions
+ * Proc macros modify cell content before it's processed by cell solution functions
+ */
+export interface ProcMacroFunction {
+  functionName: string;
+  metaFunctionName?: string; // Optional - if not provided, always runs at order 0
+}
+
+/**
  * Plugin containing Python code and function references for cell operations
  */
 export class Plugin {
@@ -20,6 +29,7 @@ export class Plugin {
   version: string;
   pythonCode: string;
   cellSolutionFunctions: CellSolutionFunction[];
+  procMacroFunctions: ProcMacroFunction[];
   pythonLibraries?: string[];
 
   constructor(
@@ -28,6 +38,7 @@ export class Plugin {
     version: string,
     pythonCode: string = '',
     cellSolutionFunctions: CellSolutionFunction[] = [],
+    procMacroFunctions: ProcMacroFunction[] = [],
     pythonLibraries?: string[]
   ) {
     this.id = id;
@@ -35,6 +46,7 @@ export class Plugin {
     this.version = version;
     this.pythonCode = pythonCode;
     this.cellSolutionFunctions = cellSolutionFunctions;
+    this.procMacroFunctions = procMacroFunctions;
     this.pythonLibraries = pythonLibraries;
   }
 
@@ -74,6 +86,7 @@ export class Plugin {
       version: this.version,
       pythonCode: this.pythonCode,
       cellSolutionFunctions: this.cellSolutionFunctions,
+      procMacroFunctions: this.procMacroFunctions,
       pythonLibraries: this.pythonLibraries
     };
   }
@@ -88,6 +101,7 @@ export class Plugin {
       data.version,
       data.pythonCode || '',
       data.cellSolutionFunctions || [],
+      data.procMacroFunctions || [],
       data.pythonLibraries
     );
   }
@@ -125,10 +139,26 @@ export class Plugin {
       }
     }
 
+    // Extract proc macro functions
+    const procMacroFunctions: ProcMacroFunction[] = [];
+    const procMacros = config.proc_macros || config.procMacros || [];
+
+    if (Array.isArray(procMacros)) {
+      for (const macro of procMacros) {
+        const functionName = macro.functionName || macro.function_name || macro.name;
+        const metaFunctionName = macro.metaFunctionName || macro.meta_function_name || macro.meta;
+
+        procMacroFunctions.push({
+          functionName,
+          metaFunctionName // Can be undefined - if so, always runs at order 0
+        });
+      }
+    }
+
     // Extract Python libraries from plugin section
     const pythonLibraries = config.plugin?.python_libraries;
 
-    return new Plugin(id, name, version, pythonCode, cellSolutionFunctions, pythonLibraries);
+    return new Plugin(id, name, version, pythonCode, cellSolutionFunctions, procMacroFunctions, pythonLibraries);
   }
 
   /**
