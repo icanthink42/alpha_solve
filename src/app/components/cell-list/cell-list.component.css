@@ -111,7 +111,7 @@
   border-left: 1px solid #e5e7eb;
   max-width: 250px;
   min-width: 180px;
-  height: 100%;
+  align-self: stretch;
 }
 
 .dropdown-item {
