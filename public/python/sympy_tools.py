@@ -153,6 +153,9 @@ def _latex_to_sympy_str(latex: str) -> str:
     # Handle exponents with braces: x**{2} -> x**2
     latex = re.sub(r'\*\*\{([^{}]*)\}', r'**(\1)', latex)
 
+    # Handle subscripts with braces: x_{11} -> x_11
+    latex = re.sub(r'_\{([^{}]*)\}', r'_\1', latex)
+
     # Remove remaining backslashes for simple cases
     latex = re.sub(r'\\([a-zA-Z]+)', r'\1', latex)
 
