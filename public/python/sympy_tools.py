@@ -120,7 +120,19 @@ def _latex_to_sympy_str(latex: str) -> str:
     # Remove \left, \right, and other formatting commands
     latex = re.sub(r'\\left|\\right', '', latex)
 
+    # Handle subscripts with braces first: x_{11} -> x_11, v_{\alpha} -> v_\alpha
+    latex = re.sub(r'_\{([^{}]*)\}', r'_\1', latex)
+
+    # Handle common Greek letters specifically (before fractions)
+    # This way v_\alpha becomes v_alpha before we process fractions
+    greek_letters = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta',
+                     'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'omicron', 'pi', 'rho',
+                     'sigma', 'tau', 'upsilon', 'phi', 'chi', 'psi', 'omega']
+    for letter in greek_letters:
+        latex = latex.replace(f'\\{letter}', letter)
+
     # Replace fractions: \frac{a}{b} -> (a)/(b)
+    # Now that subscripts and Greek letters are simplified, this will work
     # Limit iterations to prevent infinite loops
     for _ in range(10):
         if r'\frac' not in latex:
@@ -132,6 +144,9 @@ def _latex_to_sympy_str(latex: str) -> str:
 
     # Replace exponents: ^ -> **
     latex = latex.replace('^', '**')
+
+    # Handle exponents with braces: x**{2} -> x**2
+    latex = re.sub(r'\*\*\{([^{}]*)\}', r'**(\1)', latex)
 
     # Handle \cdot as multiplication
     latex = latex.replace(r'\cdot', '*')
@@ -145,18 +160,11 @@ def _latex_to_sympy_str(latex: str) -> str:
     latex = re.sub(r'\\log', 'log', latex)
     latex = re.sub(r'\\exp', 'exp', latex)
 
-    # Handle constants
-    latex = re.sub(r'\\pi', 'pi', latex)
+    # Handle constants (pi was already handled with Greek letters)
     latex = latex.replace('π', 'pi')
     latex = re.sub(r'\\e\b', 'E', latex)
 
-    # Handle exponents with braces: x**{2} -> x**2
-    latex = re.sub(r'\*\*\{([^{}]*)\}', r'**(\1)', latex)
-
-    # Handle subscripts with braces: x_{11} -> x_11
-    latex = re.sub(r'_\{([^{}]*)\}', r'_\1', latex)
-
-    # Remove remaining backslashes for simple cases
+    # Remove remaining backslashes for any other cases
     latex = re.sub(r'\\([a-zA-Z]+)', r'\1', latex)
 
     # Clean up spaces
