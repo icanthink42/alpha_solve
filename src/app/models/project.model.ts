@@ -214,6 +214,7 @@ export class Project {
   /**
    * Run proc macros on a cell to potentially modify its content
    * Returns a modified copy of the cell if any proc macro modifies it, otherwise returns the original cell
+   * Runs all applicable macros sequentially in priority order
    */
   private async runProcMacros(cell: EquationCell, inputContext: Context, pythonExecutor: PythonExecutorService): Promise<EquationCell> {
     // Get all available proc macros
@@ -223,12 +224,16 @@ export class Project {
       return cell;
     }
 
-    // Call meta function for each available proc macro
+    // Start with the original cell's LaTeX
+    let currentLatex = cell.latex;
+    let wasModified = false;
+
+    // Call meta function for each available proc macro to determine which ones want to run
     const metaResults: { result: MetaFunctionResult; functionName: string }[] = [];
 
     for (const macro of availableMacros) {
       try {
-        const input = createProcMacroInput(cell.latex, inputContext);
+        const input = createProcMacroInput(currentLatex, inputContext);
         const execResult = await pythonExecutor.callProcMacroMetaFunction(macro.functionName, input);
 
         if (execResult.result) {
@@ -253,28 +258,35 @@ export class Project {
       return cell;
     }
 
-    // Sort by index and choose the top one (lowest index)
+    // Sort by index (lowest index = highest priority, runs first)
     usableResults.sort((a, b) => a.result.index - b.result.index);
-    const selectedMacro = usableResults[0];
 
-    // Run the selected proc macro
-    try {
-      const input = createProcMacroInput(cell.latex, inputContext);
-      const execResult = await pythonExecutor.callProcMacro(selectedMacro.functionName, input);
+    // Run each proc macro sequentially, applying each transformation on top of the previous one
+    for (const macroInfo of usableResults) {
+      try {
+        const input = createProcMacroInput(currentLatex, inputContext);
+        const execResult = await pythonExecutor.callProcMacro(macroInfo.functionName, input);
 
-      if (execResult.result) {
-        const macroResult = execResult.result as any; // ProcMacroResult type
+        if (execResult.result) {
+          const macroResult = execResult.result as any; // ProcMacroResult type
 
-        // If the proc macro modified the LaTeX, create a modified copy of the cell
-        if (macroResult.modifiedLatex) {
-          // Create a copy of the cell with modified LaTeX
-          const modifiedCell = { ...cell };
-          modifiedCell.latex = macroResult.modifiedLatex;
-          return modifiedCell;
+          // If the proc macro modified the LaTeX, update currentLatex
+          if (macroResult.modifiedLatex && macroResult.modifiedLatex !== currentLatex) {
+            console.log(`[runProcMacros] ${macroInfo.functionName}: ${currentLatex} -> ${macroResult.modifiedLatex}`);
+            currentLatex = macroResult.modifiedLatex;
+            wasModified = true;
+          }
         }
+      } catch (error) {
+        console.error(`Failed to execute proc macro ${macroInfo.functionName}:`, error);
       }
-    } catch (error) {
-      console.error(`Failed to execute proc macro ${selectedMacro.functionName}:`, error);
+    }
+
+    // If any macro modified the LaTeX, return a modified copy of the cell
+    if (wasModified) {
+      const modifiedCell = { ...cell };
+      modifiedCell.latex = currentLatex;
+      return modifiedCell;
     }
 
     return cell;
