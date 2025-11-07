@@ -46,6 +46,17 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
   private maxAttempts = 50;
   private isInitializing = true;
 
+  /**
+   * Custom command substitutions: maps command names to their LaTeX templates
+   *
+   * To add more commands, add entries to this Map:
+   * ['commandName', 'LaTeX template']
+   *
+   */
+  private customCommands: Map<string, string> = new Map([
+    ['int', '\\int_{ }^{ }\\left(\\right)d']
+  ]);
+
   ngAfterViewInit(): void {
     this.waitForMathQuillAndInitialize();
   }
@@ -54,6 +65,18 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
     if (this.mathField) {
       this.mathField.revert();
     }
+  }
+
+  /**
+   * Add a custom command that expands to a LaTeX template when typed
+   * @param commandName - The text command to type (e.g., 'int', 'sum', 'lim')
+   * @param latexTemplate - The LaTeX to expand to (e.g., '\\int_{ }^{ }')
+   *
+   * Example: addCustomCommand('sum', '\\sum_{ }^{ }')
+   * Then typing 'sum' will expand to the summation template
+   */
+  addCustomCommand(commandName: string, latexTemplate: string): void {
+    this.customCommands.set(commandName, latexTemplate);
   }
 
   private waitForMathQuillAndInitialize(): void {
@@ -69,16 +92,43 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
 
   private initializeMathQuill(): void {
     const MQ = MathQuill.getInterface(2);
+
+    // Build autoOperatorNames string including custom commands
+    const baseOperators = 'sin cos tan sec csc cot sinh cosh tanh sech csch coth arcsin arccos arctan arcsec arccsc arccot log ln lg exp det dim ker gcd lcm min max sup inf lim limsup liminf arg deg hom Pr';
+    const customCommandNames = Array.from(this.customCommands.keys()).join(' ');
+    const allOperatorNames = `${baseOperators} ${customCommandNames}`;
+
     this.mathField = MQ.MathField(this.mathquillField.nativeElement, {
       spaceBehavesLikeTab: true,
-      autoCommands: 'pi theta phi sigma alpha beta gamma delta epsilon zeta eta iota kappa lambda mu nu xi omicron rho tau upsilon chi psi omega sqrt sum prod int',
-      autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh sech csch coth arcsin arccos arctan arcsec arccsc arccot log ln lg exp det dim ker gcd lcm min max sup inf lim limsup liminf arg deg hom Pr',
+      autoCommands: 'pi theta phi sigma alpha beta gamma delta epsilon zeta eta iota kappa lambda mu nu xi omicron rho tau upsilon chi psi omega sqrt sum prod',
+      autoOperatorNames: allOperatorNames,
       handlers: {
         edit: () => {
           if (this.isInitializing) {
             return;
           }
-          const latex = this.mathField.latex();
+
+          // Check for custom command replacements anywhere in the expression
+          let latex = this.mathField.latex();
+          let wasReplaced = false;
+
+          for (const [cmdName, template] of this.customCommands) {
+            const operatorPattern = `\\operatorname{${cmdName}}`;
+            if (latex.includes(operatorPattern)) {
+              // Replace the operator with its template
+              const newLatex = latex.replace(operatorPattern, template);
+              this.mathField.latex(newLatex);
+              // Move cursor to the end
+              this.mathField.moveToLeftEnd().moveToRightEnd();
+              wasReplaced = true;
+              break;
+            }
+          }
+
+          if (wasReplaced) {
+            return;
+          }
+
           this.latex = latex;
           this.latexChange.emit(latex);
           this.onChange(latex);
