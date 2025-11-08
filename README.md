@@ -1,6 +1,16 @@
 # AlphaSolve
 
+A mathematical equation solver with real-time collaboration support.
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.2.2.
+
+## Features
+
+- **Equation Solving**: Solve mathematical equations using plugin-based solvers
+- **Real-time Collaboration**: Share projects via WebSocket and collaborate in real-time
+- **Plugin System**: Extend functionality with Git-based plugins
+- **Cell-based Interface**: Organize work in equation, note, and folder cells
+- **Context Propagation**: Automatic dependency resolution between cells
 
 ## Development server
 
@@ -53,6 +63,26 @@ ng e2e
 ```
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+
+## Sharing Projects
+
+To share a project and collaborate in real-time:
+
+1. Click the share button (network icon) in the project header
+2. Enter your name and server URL
+3. Click "Connect & Share"
+4. Copy and share the generated link with collaborators
+
+**Note**: You'll need a WebSocket server running to use the share feature. See `docs/websocket-packets.md` for implementation details.
+
+## Documentation
+
+- **Plugin Development**: `docs/plugin-development.md`
+- **WebSocket Packets**: `docs/websocket-packets.md`
+- **Share Feature**: `docs/share-feature-summary.md`
+- **Cell Functions**: `docs/cell-functions.md`
+- **Meta Functions**: `docs/meta-functions.md`
+- **Proc Macros**: `docs/proc-macros.md`
 
 ## Additional Resources
 

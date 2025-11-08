@@ -15,6 +15,9 @@ export class CellListComponent {
   @Input() cells: Cell[] = [];
   @Output() cellSelected = new EventEmitter<Cell>();
   @Output() cellUpdated = new EventEmitter<string>();
+  @Output() cellCreated = new EventEmitter<{ cell: Cell; index: number; parentArray: Cell[] }>();
+  @Output() cellDeleted = new EventEmitter<{ cellId: string; parentArray: Cell[] }>();
+  @Output() cellMoved = new EventEmitter<{ cellId: string; fromIndex: number; toIndex: number; parentArray: Cell[] }>();
   @ViewChildren(MathQuillInputComponent) mathquillInputs!: QueryList<MathQuillInputComponent>;
 
   expandedFolders = new Set<string>();
@@ -142,20 +145,28 @@ export class CellListComponent {
     // Check if moving within the same parent
     const sameParent = this.draggedFromParent === targetParentArray;
 
+    // Store info for the move event
+    const cellId = this.draggedCell.id;
+    const fromIndex = this.draggedFromParent.indexOf(this.draggedCell);
+
     // Remove from original position
-    const draggedIndex = this.draggedFromParent.indexOf(this.draggedCell);
-    if (draggedIndex > -1) {
-      this.draggedFromParent.splice(draggedIndex, 1);
+    if (fromIndex > -1) {
+      this.draggedFromParent.splice(fromIndex, 1);
     }
 
     // Insert at new position
     const targetIndex = targetParentArray.indexOf(targetCell);
     targetParentArray.splice(targetIndex, 0, this.draggedCell);
 
+    // Emit cell moved event (only if moved within same parent)
+    if (sameParent && fromIndex !== -1 && targetIndex !== -1) {
+      this.cellMoved.emit({ cellId, fromIndex, toIndex: targetIndex, parentArray: targetParentArray });
+    }
+
     // Emit update from the earliest affected cell (for equation cells only)
     if (sameParent && this.draggedCell.type === 'equation') {
       // Find the earliest position that was affected
-      const earliestIndex = Math.min(draggedIndex, targetIndex);
+      const earliestIndex = Math.min(fromIndex, targetIndex);
       if (earliestIndex >= 0 && earliestIndex < targetParentArray.length) {
         this.cellUpdated.emit(targetParentArray[earliestIndex].id);
       }
@@ -187,20 +198,29 @@ export class CellListComponent {
     // Check if moving within the same parent
     const sameParent = this.draggedFromParent === targetParentArray;
 
+    // Store info for the move event
+    const cellId = this.draggedCell.id;
+    const fromIndex = this.draggedFromParent.indexOf(this.draggedCell);
+
     // Remove from original position
-    const draggedIndex = this.draggedFromParent.indexOf(this.draggedCell);
-    if (draggedIndex > -1) {
-      this.draggedFromParent.splice(draggedIndex, 1);
+    if (fromIndex > -1) {
+      this.draggedFromParent.splice(fromIndex, 1);
     }
 
     // Add to end of list
+    const toIndex = targetParentArray.length;
     targetParentArray.push(this.draggedCell);
+
+    // Emit cell moved event (only if moved within same parent)
+    if (sameParent && fromIndex !== -1) {
+      this.cellMoved.emit({ cellId, fromIndex, toIndex, parentArray: targetParentArray });
+    }
 
     // Emit update from the earliest affected cell (for equation cells only)
     if (sameParent && this.draggedCell.type === 'equation') {
       // Update from the old position since we removed from there
-      if (draggedIndex >= 0 && draggedIndex < targetParentArray.length) {
-        this.cellUpdated.emit(targetParentArray[draggedIndex].id);
+      if (fromIndex >= 0 && fromIndex < targetParentArray.length) {
+        this.cellUpdated.emit(targetParentArray[fromIndex].id);
       }
     } else if (!sameParent && this.draggedCell.type === 'equation' && targetParentArray.length > 0) {
       // Moved to different parent, update the dragged cell (now at the end)
@@ -219,7 +239,11 @@ export class CellListComponent {
 
   addNewCell(parentArray: Cell[]): void {
     const newCell = CellSerializer.createEquationCell('');
+    const index = parentArray.length;
     parentArray.push(newCell);
+
+    // Emit cell created event
+    this.cellCreated.emit({ cell: newCell, index, parentArray });
 
     // Focus the new cell after it's been added to the DOM
     setTimeout(() => {
@@ -258,6 +282,9 @@ export class CellListComponent {
   deleteCell(cell: Cell, parentArray: Cell[]): void {
     const index = parentArray.indexOf(cell);
     if (index === -1) return;
+
+    // Emit cell deleted event
+    this.cellDeleted.emit({ cellId: cell.id, parentArray });
 
     // Find the cell to focus after deletion (the one before this one)
     let cellToFocus: Cell | null = null;
@@ -359,7 +386,11 @@ export class CellListComponent {
   onCreateCellBelow(cell: Cell, parentArray: Cell[]): void {
     const index = parentArray.indexOf(cell);
     const newCell = CellSerializer.createEquationCell('');
-    parentArray.splice(index + 1, 0, newCell);
+    const newIndex = index + 1;
+    parentArray.splice(newIndex, 0, newCell);
+
+    // Emit cell created event
+    this.cellCreated.emit({ cell: newCell, index: newIndex, parentArray });
 
     // Focus the new cell after it's been added to the DOM
     setTimeout(() => {

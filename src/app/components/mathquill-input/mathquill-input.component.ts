@@ -7,6 +7,8 @@ import {
   Output,
   EventEmitter,
   OnDestroy,
+  OnChanges,
+  SimpleChanges,
   forwardRef,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -30,7 +32,7 @@ declare const MathQuill: any;
     },
   ],
 })
-export class MathQuillInputComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
+export class MathQuillInputComponent implements AfterViewInit, OnDestroy, OnChanges, ControlValueAccessor {
   @ViewChild('mathquillField', { static: false }) mathquillField!: ElementRef;
   @Input() latex: string = '';
   @Output() latexChange = new EventEmitter<string>();
@@ -59,6 +61,21 @@ export class MathQuillInputComponent implements AfterViewInit, OnDestroy, Contro
 
   ngAfterViewInit(): void {
     this.waitForMathQuillAndInitialize();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // When the latex input changes, update the MathQuill field
+    if (changes['latex'] && !changes['latex'].firstChange && this.mathField) {
+      const newLatex = changes['latex'].currentValue || '';
+      // Only update if the value is different from what's currently in the field
+      if (this.mathField.latex() !== newLatex) {
+        this.isInitializing = true; // Prevent edit handler from firing
+        this.mathField.latex(newLatex);
+        setTimeout(() => {
+          this.isInitializing = false;
+        }, 0);
+      }
+    }
   }
 
   ngOnDestroy(): void {

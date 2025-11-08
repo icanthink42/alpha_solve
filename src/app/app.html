@@ -45,6 +45,16 @@
               <path d="M2 3H14V2H2V3Z" fill="currentColor"/>
             </svg>
           </button>
+          <button class="project-action-btn" (click)="openShareModal()" title="Share project"
+                  [class.connected]="isConnected()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="4" r="2" fill="currentColor"/>
+              <circle cx="4" cy="8" r="2" fill="currentColor"/>
+              <circle cx="12" cy="12" r="2" fill="currentColor"/>
+              <line x1="6" y1="7.5" x2="10" y2="4.5" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="6" y1="8.5" x2="10" y2="11.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="plugin-status" (click)="openPluginManager()" title="Manage plugins">
@@ -54,7 +64,10 @@
     <app-cell-list
       [cells]="project.cells"
       (cellSelected)="onCellSelected($event)"
-      (cellUpdated)="onCellUpdated($event)" />
+      (cellUpdated)="onCellUpdated($event)"
+      (cellCreated)="onCellCreated($event)"
+      (cellDeleted)="onCellDeleted($event)"
+      (cellMoved)="onCellMoved($event)" />
     <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
   </aside>
 
@@ -71,5 +84,82 @@
   (addPluginUrl)="onAddPluginUrl($event)"
   (removePluginUrl)="onRemovePluginUrl($event)"
 />
+
+<!-- Share Modal -->
+@if (isShareModalOpen()) {
+  <div class="modal-overlay" (click)="closeShareModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Share Project</h2>
+        <button class="close-btn" (click)="closeShareModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        @if (!isConnected() && !shareLink()) {
+          <!-- Connection form -->
+          <div class="share-form">
+            <div class="form-group">
+              <label for="userName">Your Name</label>
+              <input
+                id="userName"
+                type="text"
+                class="form-input"
+                [(ngModel)]="userName"
+                placeholder="Enter your name"
+                (keydown.enter)="shareProject()"
+              />
+            </div>
+
+            @if (connectionError()) {
+              <div class="error-message">
+                {{ connectionError() }}
+              </div>
+            }
+
+            <button
+              class="primary-btn"
+              (click)="shareProject()"
+              [disabled]="isConnecting()"
+            >
+              @if (isConnecting()) {
+                <span class="spinner"></span> Connecting...
+              } @else {
+                Connect & Share
+              }
+            </button>
+          </div>
+        } @else {
+          <!-- Connected - show share link -->
+          <div class="share-success">
+            <div class="success-icon">✓</div>
+            <h3>Project Shared Successfully!</h3>
+            <p>Share this link with others to collaborate:</p>
+
+            <div class="share-link-container">
+              <input
+                type="text"
+                class="share-link-input"
+                [value]="shareLink()"
+                readonly
+              />
+              <button class="copy-btn" (click)="copyShareLink()">
+                Copy
+              </button>
+            </div>
+
+            <div class="connection-status">
+              <span class="status-indicator connected"></span>
+              Connected as {{ userName() }}
+            </div>
+
+            <button class="secondary-btn" (click)="disconnectFromServer()">
+              Disconnect
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
 
 <router-outlet />
