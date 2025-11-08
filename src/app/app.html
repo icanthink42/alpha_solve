@@ -95,40 +95,15 @@
       </div>
 
       <div class="modal-body">
-        @if (!isConnected() && !shareLink()) {
-          <!-- Connection form -->
+        @if (isConnecting() && !shareLink()) {
+          <!-- Connecting state -->
           <div class="share-form">
-            <div class="form-group">
-              <label for="userName">Your Name</label>
-              <input
-                id="userName"
-                type="text"
-                class="form-input"
-                [(ngModel)]="userName"
-                placeholder="Enter your name"
-                (keydown.enter)="shareProject()"
-              />
+            <div class="connecting-message">
+              <span class="spinner"></span>
+              <p>Connecting to server...</p>
             </div>
-
-            @if (connectionError()) {
-              <div class="error-message">
-                {{ connectionError() }}
-              </div>
-            }
-
-            <button
-              class="primary-btn"
-              (click)="shareProject()"
-              [disabled]="isConnecting()"
-            >
-              @if (isConnecting()) {
-                <span class="spinner"></span> Connecting...
-              } @else {
-                Connect & Share
-              }
-            </button>
           </div>
-        } @else {
+        } @else if (shareLink()) {
           <!-- Connected - show share link -->
           <div class="share-success">
             <div class="success-icon">✓</div>
@@ -143,17 +118,27 @@
                 readonly
               />
               <button class="copy-btn" (click)="copyShareLink()">
-                Copy
+                {{ isCopied() ? 'Copied!' : 'Copy' }}
               </button>
             </div>
 
             <div class="connection-status">
               <span class="status-indicator connected"></span>
-              Connected as {{ userName() }}
+              Connected as anonymous
             </div>
 
             <button class="secondary-btn" (click)="disconnectFromServer()">
               Disconnect
+            </button>
+          </div>
+        } @else if (connectionError()) {
+          <!-- Connection error -->
+          <div class="share-form">
+            <div class="error-message">
+              {{ connectionError() }}
+            </div>
+            <button class="primary-btn" (click)="shareProject()">
+              Try Again
             </button>
           </div>
         }

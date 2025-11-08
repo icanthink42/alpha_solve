@@ -425,6 +425,25 @@
   gap: 1rem;
 }
 
+.connecting-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.connecting-message p {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.connecting-message .spinner {
+  border-color: rgba(59, 130, 246, 0.3);
+  border-top-color: #3b82f6;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

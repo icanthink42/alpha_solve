@@ -37,6 +37,7 @@ export class App implements AfterViewInit, OnDestroy {
   protected isConnected = signal(false);
   protected connectionError = signal<string | null>(null);
   protected userName = signal<string>('');
+  protected isCopied = signal(false);
   private subscriptions: Subscription[] = [];
 
   // Track cell states for change detection
@@ -155,14 +156,6 @@ export class App implements AfterViewInit, OnDestroy {
         this.isProcessingIncomingPacket = false;
       })
     );
-
-    // Load username from localStorage
-    if (typeof localStorage !== 'undefined') {
-      const savedName = localStorage.getItem('userName');
-      if (savedName) {
-        this.userName.set(savedName);
-      }
-    }
 
     // Check for share link parameters and auto-connect
     this.checkAndConnectFromUrl();
@@ -649,10 +642,14 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Open share modal
+   * Open share modal and immediately connect
    */
   protected openShareModal(): void {
+    this.userName.set('anonymous');
+    // Open modal immediately to show connecting state
     this.isShareModalOpen.set(true);
+    // Directly connect and share
+    this.shareProject();
   }
 
   /**
@@ -660,6 +657,7 @@ export class App implements AfterViewInit, OnDestroy {
    */
   protected closeShareModal(): void {
     this.isShareModalOpen.set(false);
+    this.connectionError.set(null);
   }
 
   /**
@@ -683,16 +681,7 @@ export class App implements AfterViewInit, OnDestroy {
    * Connect to server and share project
    */
   protected async shareProject(): Promise<void> {
-    const name = this.userName().trim();
-    if (!name) {
-      this.connectionError.set('Please enter your name');
-      return;
-    }
-
-    // Save username to localStorage
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('userName', name);
-    }
+    const name = 'anonymous';
 
     this.isConnecting.set(true);
     this.connectionError.set(null);
@@ -721,6 +710,10 @@ export class App implements AfterViewInit, OnDestroy {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200';
         const link = `${baseUrl}?projectId=${this.project.id}`;
         this.shareLink.set(link);
+      } else {
+        // Connection failed
+        this.connectionError.set('Failed to connect to server');
+        this.isConnecting.set(false);
       }
     } catch (error) {
       console.error('Failed to share project:', error);
@@ -747,7 +740,10 @@ export class App implements AfterViewInit, OnDestroy {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
         await navigator.clipboard.writeText(link);
-        alert('Link copied to clipboard!');
+        this.isCopied.set(true);
+        setTimeout(() => {
+          this.isCopied.set(false);
+        }, 1000);
       }
     } catch (error) {
       console.error('Failed to copy link:', error);
@@ -770,18 +766,8 @@ export class App implements AfterViewInit, OnDestroy {
       if (projectId) {
         // Wait a bit for initialization, then connect
         setTimeout(() => {
-          // Prompt for name if not saved
-          if (!this.userName()) {
-            const name = prompt('Enter your name to join the collaboration:');
-            if (name && name.trim()) {
-              this.userName.set(name.trim());
-              if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('userName', name.trim());
-              }
-            } else {
-              return;
-            }
-          }
+          // Use anonymous as the default name
+          this.userName.set('anonymous');
 
           // Connect to the server using environment-detected URL
           const userId = this.getUserId();
@@ -789,7 +775,7 @@ export class App implements AfterViewInit, OnDestroy {
           this.isConnecting.set(true);
 
           this.packetManager.connect({
-            name: this.userName(),
+            name: 'anonymous',
             projectId: projectId,
             userId: userId,
             url: serverUrl
